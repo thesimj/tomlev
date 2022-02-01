@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "tomlev"
 version = "0.0.3"
-description = "Tomlev - Open-source Python framework to manage environment variables"
+description = "TomlEv - Open-source Python framework to manage environment variables"
 authors = ["Mykola Bubelich <m+github@bubelich.com>"]
 license = "MIT"
 readme = "README.md"
