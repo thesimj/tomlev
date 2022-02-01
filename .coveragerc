@@ -1,0 +1,3 @@
+[run]
+source = tomlenv/
+omit = tests/*

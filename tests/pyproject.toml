@@ -1,0 +1,26 @@
+title = "Tesing file"
+
+[tool.other]
+notread = true
+
+[tool.tomlenv]
+debug = true
+environment = "testing"
+
+[tool.tomlenv.database]
+host = "127.0.0.1"
+port = 10
+user = "$DB_USER"
+password = "$DB_PASS"
+name = "$DB_NAME"
+
+[tool.tomlenv.database.queries]
+user_select = """SELECT * FROM "user" ORDER BY "name";"""
+
+[tool.tomlenv.redis]
+host = "127.0.0.10"
+port = 6969
+password = "$RD_PASS"
+
+[tool.tomlenv.redis.path]
+device = "device:{id}:run"
