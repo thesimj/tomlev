@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ '3.7', '3.8', '3.9', '3.10', 'pypy-3.8' ]
+        python-version: [ '3.8', '3.9', '3.10', 'pypy-3.8' ]
       fail-fast: false
 
     steps:
@@ -65,11 +65,14 @@ jobs:
       - name: Run tests
         run: poetry run pytest -v --tb=native -p no:warnings --cov-fail-under 90 --cov --cov-report xml
 
+      - name: Build lcov coverage file
+        run: poetry run coverage lcov
+
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: coverage.xml
+          path-to-lcov: coverage.lcov
 
   pip-publish:
     needs: build-and-tests
