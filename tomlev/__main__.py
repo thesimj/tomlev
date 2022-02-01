@@ -32,7 +32,7 @@ try:
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 # pattern to read .env file
 RE_DOT_ENV = re.compile(
@@ -41,7 +41,7 @@ RE_DOT_ENV = re.compile(
 )
 
 
-class Tomlev:
+class TomlEv:
     def __init__(
         self,
         pyproject: str = "pyproject.toml",
@@ -52,7 +52,7 @@ class Tomlev:
     ):
         if tomli_loads is None:
             raise ModuleNotFoundError(
-                'Tomlev require "tomli >= 2" module to work. Consider install this module into environment!'
+                'TomlEv require "tomli >= 2" module to work. Consider install this module into environment!'
             )
 
         # read .env files and update environment variables
@@ -115,7 +115,7 @@ class Tomlev:
     @staticmethod
     def __read_pyproject(file_path: Optional[str]) -> Dict:
         # read config file
-        config: Dict = Tomlev.__read_toml(file_path)
+        config: Dict = TomlEv.__read_toml(file_path)
 
         # return tool tomlev section
         return config["tool"]["tomlev"] if "tool" in config and "tomlev" in config["tool"] else {}
@@ -128,7 +128,7 @@ class Tomlev:
         for key, value in env.items():
             if isinstance(value, dict):
                 keys.append((key, "NamedTuple"))
-                values.append(Tomlev.__flat_environment(value))
+                values.append(TomlEv.__flat_environment(value))
             else:
                 keys.append((key, type(value)))
                 values.append(value)
@@ -141,7 +141,7 @@ class Tomlev:
 
         for key, value in env.items():
             if isinstance(value, dict):
-                config.update(Tomlev.__flat_keys(value, root=f"{root}{key}."))
+                config.update(TomlEv.__flat_keys(value, root=f"{root}{key}."))
             else:
                 config[f"{root}{key}"] = value
 

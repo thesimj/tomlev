@@ -1,3 +1,3 @@
-from .__main__ import __version__, Tomlev
+from .__main__ import __version__, TomlEv
 
-__all__ = [Tomlev, __version__]
+__all__ = [TomlEv, __version__]
