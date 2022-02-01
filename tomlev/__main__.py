@@ -41,7 +41,7 @@ RE_DOT_ENV = re.compile(
 )
 
 
-class TomlEnv:
+class Tomlev:
     def __init__(
         self,
         pyproject: str = "pyproject.toml",
@@ -52,7 +52,7 @@ class TomlEnv:
     ):
         if tomli_loads is None:
             raise ModuleNotFoundError(
-                'TomlEnv require "tomli >= 2" module to work. Consider install this module into environment!'
+                'Tomlev require "tomli >= 2" module to work. Consider install this module into environment!'
             )
 
         # read .env files and update environment variables
@@ -115,10 +115,10 @@ class TomlEnv:
     @staticmethod
     def __read_pyproject(file_path: Optional[str]) -> Dict:
         # read config file
-        config: Dict = TomlEnv.__read_toml(file_path)
+        config: Dict = Tomlev.__read_toml(file_path)
 
-        # return tool tomlenv section
-        return config["tool"]["tomlenv"] if "tool" in config and "tomlenv" in config["tool"] else {}
+        # return tool tomlev section
+        return config["tool"]["tomlev"] if "tool" in config and "tomlev" in config["tool"] else {}
 
     @staticmethod
     def __flat_environment(env: Dict) -> NamedTuple:
@@ -128,7 +128,7 @@ class TomlEnv:
         for key, value in env.items():
             if isinstance(value, dict):
                 keys.append((key, "NamedTuple"))
-                values.append(TomlEnv.__flat_environment(value))
+                values.append(Tomlev.__flat_environment(value))
             else:
                 keys.append((key, type(value)))
                 values.append(value)
@@ -141,7 +141,7 @@ class TomlEnv:
 
         for key, value in env.items():
             if isinstance(value, dict):
-                config.update(TomlEnv.__flat_keys(value, root=f"{key}."))
+                config.update(Tomlev.__flat_keys(value, root=f"{root}{key}."))
             else:
                 config[f"{root}{key}"] = value
 

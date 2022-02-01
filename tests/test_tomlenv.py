@@ -3,7 +3,7 @@ from typing import Dict
 
 from tomli import loads
 
-from tomlenv import __version__, TomlEnv
+from tomlev import __version__, Tomlev
 
 
 def test_it_should_match_module_version():
@@ -15,7 +15,7 @@ def test_it_should_match_module_version():
 
 
 def test_it_should_load_and_parse_pyproject_file():
-    env: TomlEnv = TomlEnv("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
+    env: Tomlev = Tomlev("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
 
     assert env.var.debug
     assert env.var.environment == "testing"
@@ -32,10 +32,10 @@ def test_it_should_load_and_parse_pyproject_file():
 
 
 def test_it_should_work_as_keys():
-    env: TomlEnv = TomlEnv("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
+    env: Tomlev = Tomlev("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
 
-    assert env['title_toml'] == "title-000-111"
-    assert env['extra.tools.uri'] == "http://127.0.0.1/api"
+    assert env["title_toml"] == "title-000-111"
+    assert env["extra.tools.uri"] == "http://127.0.0.1/api"
 
     # format
     assert env.format("redis.path.device", id=100) == "device:100:run"
