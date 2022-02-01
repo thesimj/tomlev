@@ -1,5 +1,10 @@
-# TomlEv - Open-source Python framework to manage environment variables
+<h2>
+    <p style="text-align: center;">
+        TomlEv - Open-source Python framework to manage environment variables
+    </p>
+</h2>
 
+---
 [![Latest Version](https://badgen.net/pypi/v/tomlev)](https://pypi.python.org/pypi/tomlev/)
 [![Tomlev CI/CD Pipeline](https://github.com/thesimj/tomlev/actions/workflows/main.yml/badge.svg)](https://github.com/thesimj/tomlev/actions/workflows/main.yml)
 [![Coverage Status](https://badgen.net/coveralls/c/github/thesimj/tomlev)](https://coveralls.io/github/thesimj/tomlev?branch=main)
