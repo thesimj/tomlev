@@ -39,3 +39,17 @@ def test_it_should_work_as_keys():
 
     # format
     assert env.format("redis.path.device", id=100) == "device:100:run"
+
+
+def test_it_should_work_with_get_funtion():
+    env: TomlEv = TomlEv("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
+
+    assert env.get("title_toml") == "title-000-111"
+    assert env.get("extra.tools.uri") == "http://127.0.0.1/api"
+
+    # default value
+    assert env.get("not.exists.keys", "not-exist") == "not-exist"
+    assert env.get("not.exists.keys") is None
+
+    # format
+    assert env.format("redis.path.device", id=100) == "device:100:run"

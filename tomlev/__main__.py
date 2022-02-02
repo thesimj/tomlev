@@ -155,6 +155,16 @@ class TomlEv:
         """
         return self.keys[key].format(**kwargs)
 
+    def get(self, key: str, default: Any = None):
+        """Get configuration variable with default value. If no `default` value set use None
+
+        :param any key: name for the configuration key
+        :param any default: default value if no key found
+        :return: any
+        """
+
+        return self.keys.get(key, default)
+
     def __contains__(self, item: str) -> bool:
         """Check if key in configuration
 
