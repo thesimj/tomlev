@@ -32,7 +32,7 @@ try:
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 # pattern to read .env file
 RE_DOT_ENV = re.compile(

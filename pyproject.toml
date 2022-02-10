@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tomlev"
-version = "0.0.3"
+version = "0.0.4"
 description = "TomlEv - Open-source Python framework to manage environment variables"
 authors = ["Mykola Bubelich <m+github@bubelich.com>"]
 license = "MIT"
@@ -28,7 +28,7 @@ python = ">=3.8"
 tomli = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+pytest = "^7.0.0"
 black = "^22.1.0"
 coverage = "^6.3"
 pytest-cov = "^3.0.0"
