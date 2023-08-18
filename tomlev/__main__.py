@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import json
 import re
 from os import environ
 from os.path import expandvars
@@ -32,7 +33,7 @@ try:
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 # pattern to read .env file
 RE_DOT_ENV = re.compile(
@@ -108,7 +109,7 @@ class TomlEv:
 
         if file_path and Path(file_path).exists():
             with Path(file_path).open("r") as fp:
-                config: Dict = tomli_loads(expandvars(fp.read()))
+                config: Dict = tomli_loads(fp.read())
 
         return config
 
@@ -117,8 +118,14 @@ class TomlEv:
         # read config file
         config: Dict = TomlEv.__read_toml(file_path)
 
+        # parse tomlev sections
+        config_tomlev: Dict = config["tool"]["tomlev"] if "tool" in config and "tomlev" in config["tool"] else {}
+
+        # apply expandvars
+        config_tomlev = json.loads(expandvars(json.dumps(config_tomlev)))
+
         # return tool tomlev section
-        return config["tool"]["tomlev"] if "tool" in config and "tomlev" in config["tool"] else {}
+        return config_tomlev
 
     @staticmethod
     def __flat_environment(env: Dict) -> NamedTuple:

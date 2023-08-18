@@ -108,7 +108,13 @@ name = "$DB_NAME"
 [tool.tomlev.database.queries]
 user_select = """SELECT * FROM "user" ORDER BY "name";"""
 
-[tool.tomlev.demo_database]
+[tool.tomlev.demo_database_a]
+uri = "demo://${DB_DEMO_USER}:${DB_DEMO_PASS}@${DB_DEMO_HOST}:${DB_DEMO_PORT}/${DB_DEMO_NAME}"
+
+[tool.tomlev.demo_database_b]
+uri = "demo://${DB_DEMO_USER}:${DB_DEMO_PASS}@${DB_DEMO_HOST}:${DB_DEMO_PORT}/${DB_DEMO_NAME}"
+
+[tool.tomlev.demo_database_c]
 uri = "demo://${DB_DEMO_USER}:${DB_DEMO_PASS}@${DB_DEMO_HOST}:${DB_DEMO_PORT}/${DB_DEMO_NAME}"
 
 [tool.tomlev.redis]

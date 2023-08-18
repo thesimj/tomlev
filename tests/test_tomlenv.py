@@ -30,6 +30,9 @@ def test_it_should_load_and_parse_pyproject_file():
     assert env.var.time == datetime.fromisoformat("2022-01-01T00:00:00+00:00")
     assert env.var.date == date.fromisoformat("2022-01-01")
 
+    assert env.var.demo_database_a.uri == env.var.demo_database_b.uri
+    assert env.var.demo_database_a.uri == env.var.demo_database_c.uri
+
 
 def test_it_should_work_as_keys():
     env: TomlEv = TomlEv("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
