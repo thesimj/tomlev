@@ -1,8 +1,37 @@
+# COMMENTS
+# ====
+
 title_toml = "title-000-111"
 time = 2022-01-01T00:00:00+00:00
 date = 2022-01-01
-debug = "$DEBUG"
+debug = "${DEBUG}"
+default = "${NOT_EXISTS|default}"
+environment = "testing"
 
 [extra.tools]
 verbose = true
 uri = "http://127.0.0.1/api"
+
+[database]
+host = "${DB_HOST}"
+user = "${DB_USER}"
+
+[database.queries]
+user_select = """SELECT * FROM "user" ORDER BY "name";"""
+
+[demo_database_a]
+uri = "demo://${DB_DEMO_USER}:${DB_DEMO_PASS}@${DB_DEMO_HOST}:${DB_DEMO_PORT}/${DB_DEMO_NAME}"
+
+[demo_database_b]
+uri = "demo://${DB_DEMO_USER}:${DB_DEMO_PASS}@${DB_DEMO_HOST}:${DB_DEMO_PORT}/${DB_DEMO_NAME}"
+
+[demo_database_c]
+uri = "demo://${DB_DEMO_USER}:${DB_DEMO_PASS}@${DB_DEMO_HOST}:${DB_DEMO_PORT}/${DB_DEMO_NAME}"
+
+[redis]
+host = "127.0.0.10"
+port = 6969
+password = "$RD_PASS"
+
+[redis.path]
+device = "device:{id}:run"

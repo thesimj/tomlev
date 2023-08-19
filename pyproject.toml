@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tomlev"
-version = "0.0.5"
+version = "0.1.0"
 description = "TomlEv - Open-source Python framework to manage environment variables"
 authors = ["Mykola Bubelich <m+github@bubelich.com>"]
 license = "MIT"
@@ -53,7 +53,7 @@ source = ['tomlev']
 [tool.flake8]
 max-line-length = 120
 select = "C,E,F,W,B,B9"
-# ignore = "E501"
+ ignore = "E203"
 exclude = ".git,.venv,__pycache__"
 
 [tool.black]

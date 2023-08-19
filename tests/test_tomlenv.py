@@ -15,9 +15,9 @@ def test_it_should_match_module_version():
 
 
 def test_it_should_load_and_parse_pyproject_file():
-    env: TomlEv = TomlEv("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
-    assert env.var.debug
+    assert env.var.debug == "true"
     assert env.var.environment == "testing"
 
     assert env.var.database.host == "127.0.0.1"
@@ -35,7 +35,7 @@ def test_it_should_load_and_parse_pyproject_file():
 
 
 def test_it_should_work_as_keys():
-    env: TomlEv = TomlEv("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
     assert env["title_toml"] == "title-000-111"
     assert env["extra.tools.uri"] == "http://127.0.0.1/api"
@@ -45,7 +45,10 @@ def test_it_should_work_as_keys():
 
 
 def test_it_should_work_with_get_funtion():
-    env: TomlEv = TomlEv("tests/pyproject.toml", envfile="tests/tests.env", tomlfile="tests/tests.toml")
+    env: TomlEv = TomlEv(
+        "tests/tests.toml",
+        "tests/tests.env",
+    )
 
     assert env.get("title_toml") == "title-000-111"
     assert env.get("extra.tools.uri") == "http://127.0.0.1/api"

@@ -21,11 +21,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import io
 import json
 import re
 from os import environ
 from os.path import expandvars
-from pathlib import Path
 from typing import Dict, Any, List, NamedTuple, Set, Optional
 
 try:
@@ -33,7 +33,10 @@ try:
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.0.5"
+__version__ = "0.1.0"
+
+# pattern to remove comments
+RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
 
 # pattern to read .env file
 RE_DOT_ENV = re.compile(
@@ -41,13 +44,30 @@ RE_DOT_ENV = re.compile(
     re.MULTILINE | re.UNICODE | re.IGNORECASE,
 )
 
+# pattern to extract env variables
+RE_PATTERN = re.compile(
+    r"(?P<pref>[\"\'])?"
+    r"(\$(?:(?P<escaped>(\$|\d+))|"
+    r"{(?P<braced>(.*?))(\|(?P<braced_default>.*?))?}|"
+    r"(?P<named>[\w\-\.]+)(\|(?P<named_default>.*))?))"
+    r"(?P<post>[\"\'])?",
+    re.MULTILINE | re.UNICODE | re.IGNORECASE | re.VERBOSE,
+)
+
 
 class TomlEv:
+    TOMLEV_STRICT_DISABLE: str = "ENVYAML_STRICT_DISABLE"
+    DEFAULT_ENV_TOML_FILE: str = "env.toml"
+    DEFAULT_ENV_FILE: str = ".env"
+
+    # variables
+    __vars: Dict = None
+    __strict: bool = True
+
     def __init__(
         self,
-        pyproject: str = "pyproject.toml",
-        envfile: str = ".env",
-        tomlfile: str = None,
+        toml_file: str = DEFAULT_ENV_TOML_FILE,
+        env_file: str = DEFAULT_ENV_FILE,
         strict: bool = True,
         include_environment: bool = True,
     ):
@@ -56,31 +76,34 @@ class TomlEv:
                 'TomlEv require "tomli >= 2" module to work. Consider install this module into environment!'
             )
 
+        # read environment
+        self.__vars: Dict = dict(environ) if include_environment else {}
+
+        # set strict mode to false if "TOMLEV_STRICT_DISABLE" presents in env else use "strict" from function
+        self.__strict = environ.get("TOMLEV_STRICT_DISABLE", strict)
+
         # read .env files and update environment variables
-        self.dotenv: Dict = self.__read_envfile(envfile)
+        self.__dotenv: Dict = self.__read_envfile(env_file, self.__strict)
 
         # set environ with dot env variables
-        environ.update(self.dotenv)
+        self.__vars.update(self.__dotenv)
 
-        # read environment
-        self.environ: Dict = dict(environ) if include_environment else {}
-
-        # read pyproject and toml file
-        self.variables: Dict = {**self.__read_pyproject(pyproject), **self.__read_toml(tomlfile)}
+        # read toml files
+        self.__toml_vars = self.__read_toml(toml_file, self.__vars, self.__strict)
 
         # build named NamedTuple
-        self.var: NamedTuple = self.__flat_environment(self.variables)
+        self.var: NamedTuple = self.__flat_environment(self.__toml_vars)
 
         # build keys
-        self.keys: Dict[str, Any] = {**self.environ, **self.__flat_keys(self.variables)}
+        self.keys: Dict[str, Any] = self.__flat_keys(self.__toml_vars)
 
     @staticmethod
     def __read_envfile(file_path: Optional[str], strict: bool = True) -> Dict:
         config: Dict = {}
         defined: Set[str] = set()
 
-        if file_path and Path(file_path).exists():
-            with Path(file_path).open() as fp:
+        if file_path:
+            with io.open(file_path, mode="rt", encoding="utf8") as fp:
                 content: str = expandvars(fp.read())
 
             # iterate over findings
@@ -104,14 +127,83 @@ class TomlEv:
         return config
 
     @staticmethod
-    def __read_toml(file_path: Optional[str]) -> Dict:
-        config: Dict = {}
+    def __read_toml(file_path: str, env: Dict, strict: bool, separator="|") -> Dict:
+        # read file
+        if file_path:
+            with io.open(file_path, mode="rt", encoding="utf8") as fp:
+                content: str = fp.read()
 
-        if file_path and Path(file_path).exists():
-            with Path(file_path).open("r") as fp:
-                config: Dict = tomli_loads(fp.read())
+        # remove all comments
+        content = RE_COMMENTS.sub("", content)
 
-        return config
+        # not found variables
+        not_found_variables = set()
+
+        # changes dictionary
+        replaces = dict()
+
+        shifting = 0
+
+        # iterate over findings
+        for entry in RE_PATTERN.finditer(content):
+            groups = entry.groupdict()  # type: dict
+
+            # replace
+            variable = None
+            default = None
+            replace = None
+
+            if groups["named"]:
+                variable = groups["named"]
+                default = groups["named_default"]
+
+            elif groups["braced"]:
+                variable = groups["braced"]
+                default = groups["braced_default"]
+
+            elif groups["escaped"] and "$" in groups["escaped"]:
+                span = entry.span()
+                content = content[: span[0] + shifting] + groups["escaped"] + content[span[1] + shifting :]
+                # Added shifting since every time we update content we are
+                # changing the original groups spans
+                shifting += len(groups["escaped"]) - (span[1] - span[0])
+
+            if variable is not None:
+                if variable in env:
+                    replace = env[variable]
+                elif variable not in env and default is not None:
+                    replace = default
+                else:
+                    not_found_variables.add(variable)
+
+            if replace is not None:
+                # build match
+                search = "${" if groups["braced"] else "$"
+                search += variable
+                search += separator + default if default is not None else ""
+                search += "}" if groups["braced"] else ""
+
+                # store findings
+                replaces[search] = replace
+
+        # strict mode
+        if strict and not_found_variables:
+            raise ValueError(
+                "Strict mode enabled, variables , ".join(["$" + v for v in not_found_variables]) + " are not defined!"
+            )
+
+        # replace finding with their respective values
+        for replace in sorted(replaces, reverse=True):
+            content = content.replace(replace, replaces[replace])
+
+        # load proper content
+        toml = tomli_loads(content)
+
+        # if contains something
+        if toml and isinstance(toml, (dict, list)):
+            return toml
+
+        return {}
 
     @staticmethod
     def __read_pyproject(file_path: Optional[str]) -> Dict:
@@ -153,6 +245,14 @@ class TomlEv:
                 config[f"{root}{key}"] = value
 
         return config
+
+    @property
+    def environ(self) -> Dict:
+        """Get environments mapping object including .env variables
+
+        :return: A mapping object representing the string environment
+        """
+        return self.__vars
 
     def format(self, key: str, **kwargs) -> str:
         """Apply quick format for string values with {arg}
