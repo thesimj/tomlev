@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import io
-import json
 import re
 from os import environ
 from os.path import expandvars
@@ -66,8 +65,8 @@ class TomlEv:
 
     def __init__(
         self,
-        toml_file: str = DEFAULT_ENV_TOML_FILE,
-        env_file: str = DEFAULT_ENV_FILE,
+        toml_file: Optional[str] = DEFAULT_ENV_TOML_FILE,
+        env_file: Optional[str] = DEFAULT_ENV_FILE,
         strict: bool = True,
         include_environment: bool = True,
     ):
@@ -133,91 +132,78 @@ class TomlEv:
             with io.open(file_path, mode="rt", encoding="utf8") as fp:
                 content: str = fp.read()
 
-        # remove all comments
-        content = RE_COMMENTS.sub("", content)
+            # remove all comments
+            content = RE_COMMENTS.sub("", content)
 
-        # not found variables
-        not_found_variables = set()
+            # not found variables
+            not_found_variables = set()
 
-        # changes dictionary
-        replaces = dict()
+            # changes dictionary
+            replaces = dict()
 
-        shifting = 0
+            shifting = 0
 
-        # iterate over findings
-        for entry in RE_PATTERN.finditer(content):
-            groups = entry.groupdict()  # type: dict
+            # iterate over findings
+            for entry in RE_PATTERN.finditer(content):
+                groups = entry.groupdict()  # type: dict
 
-            # replace
-            variable = None
-            default = None
-            replace = None
+                # replace
+                variable = None
+                default = None
+                replace = None
 
-            if groups["named"]:
-                variable = groups["named"]
-                default = groups["named_default"]
+                if groups["named"]:
+                    variable = groups["named"]
+                    default = groups["named_default"]
 
-            elif groups["braced"]:
-                variable = groups["braced"]
-                default = groups["braced_default"]
+                elif groups["braced"]:
+                    variable = groups["braced"]
+                    default = groups["braced_default"]
 
-            elif groups["escaped"] and "$" in groups["escaped"]:
-                span = entry.span()
-                content = content[: span[0] + shifting] + groups["escaped"] + content[span[1] + shifting :]
-                # Added shifting since every time we update content we are
-                # changing the original groups spans
-                shifting += len(groups["escaped"]) - (span[1] - span[0])
+                elif groups["escaped"] and "$" in groups["escaped"]:
+                    span = entry.span()
+                    content = content[: span[0] + shifting] + groups["escaped"] + content[span[1] + shifting :]
+                    # Added shifting since every time we update content we are
+                    # changing the original groups spans
+                    shifting += len(groups["escaped"]) - (span[1] - span[0])
 
-            if variable is not None:
-                if variable in env:
-                    replace = env[variable]
-                elif variable not in env and default is not None:
-                    replace = default
-                else:
-                    not_found_variables.add(variable)
+                if variable is not None:
+                    if variable in env:
+                        replace = env[variable]
+                    elif variable not in env and default is not None:
+                        replace = default
+                    else:
+                        not_found_variables.add(variable)
 
-            if replace is not None:
-                # build match
-                search = "${" if groups["braced"] else "$"
-                search += variable
-                search += separator + default if default is not None else ""
-                search += "}" if groups["braced"] else ""
+                if replace is not None:
+                    # build match
+                    search = "${" if groups["braced"] else "$"
+                    search += variable
+                    search += separator + default if default is not None else ""
+                    search += "}" if groups["braced"] else ""
 
-                # store findings
-                replaces[search] = replace
+                    # store findings
+                    replaces[search] = replace
 
-        # strict mode
-        if strict and not_found_variables:
-            raise ValueError(
-                "Strict mode enabled, variables , ".join(["$" + v for v in not_found_variables]) + " are not defined!"
-            )
+            # strict mode
+            if strict and not_found_variables:
+                raise ValueError(
+                    "Strict mode enabled, variables , ".join(["$" + v for v in not_found_variables])
+                    + " are not defined!"
+                )
 
-        # replace finding with their respective values
-        for replace in sorted(replaces, reverse=True):
-            content = content.replace(replace, replaces[replace])
+            # replace finding with their respective values
+            for replace in sorted(replaces, reverse=True):
+                content = content.replace(replace, replaces[replace])
 
-        # load proper content
-        toml = tomli_loads(content)
+            # load proper content
+            toml = tomli_loads(content)
 
-        # if contains something
-        if toml and isinstance(toml, (dict, list)):
-            return toml
+            # if contains something
+            if toml and isinstance(toml, (dict, list)):
+                return toml
 
         return {}
-
-    @staticmethod
-    def __read_pyproject(file_path: Optional[str]) -> Dict:
-        # read config file
-        config: Dict = TomlEv.__read_toml(file_path)
-
-        # parse tomlev sections
-        config_tomlev: Dict = config["tool"]["tomlev"] if "tool" in config and "tomlev" in config["tool"] else {}
-
-        # apply expandvars
-        config_tomlev = json.loads(expandvars(json.dumps(config_tomlev)))
-
-        # return tool tomlev section
-        return config_tomlev
 
     @staticmethod
     def __flat_environment(env: Dict) -> NamedTuple:

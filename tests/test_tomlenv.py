@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from typing import Dict
 
+import pytest
 from tomli import loads
 
 from tomlev import __version__, TomlEv
@@ -14,7 +15,7 @@ def test_it_should_match_module_version():
     assert __version__ == project["tool"]["poetry"]["version"]
 
 
-def test_it_should_load_and_parse_pyproject_file():
+def test_it_should_load_and_parse_toml_file():
     env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
     assert env.var.debug == "true"
@@ -32,6 +33,8 @@ def test_it_should_load_and_parse_pyproject_file():
 
     assert env.var.demo_database_a.uri == env.var.demo_database_b.uri
     assert env.var.demo_database_a.uri == env.var.demo_database_c.uri
+
+    assert env.var.env_with_ds == "extra_$money_maker"
 
 
 def test_it_should_work_as_keys():
@@ -59,3 +62,17 @@ def test_it_should_work_with_get_funtion():
 
     # format
     assert env.format("redis.path.device", id=100) == "device:100:run"
+
+
+def test_it_should_work_with_strict_mode_disable():
+    with pytest.raises(ValueError) as ex_inf:
+        TomlEv(
+            "tests/tests_not_exists.toml",
+            "tests/tests.env",
+        )
+
+    assert str(ex_inf.value) == "$NOT_EXISTS are not defined!"
+
+
+def test_it_should_be_loaded_with_no_files():
+    assert TomlEv(None, None)
