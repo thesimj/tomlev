@@ -10,8 +10,6 @@
 [![Coverage Status](https://badgen.net/coveralls/c/github/thesimj/tomlev)](https://coveralls.io/github/thesimj/tomlev?branch=main)
 ![Versions](https://badgen.net/pypi/python/tomlev)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Alerts](https://img.shields.io/lgtm/alerts/g/thesimj/tomlev.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/thesimj/tomlev/alerts/)
-[![Code Quality](https://img.shields.io/lgtm/grade/python/g/thesimj/tomlev.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/thesimj/tomlev/context:python)
 [![License](https://img.shields.io/pypi/l/tomlev.svg)](LICENSE)
 [![Downloads](https://static.pepy.tech/personalized-badge/tomlev?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/tomlev)
 
