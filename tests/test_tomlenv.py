@@ -144,3 +144,22 @@ def test_it_should_get_proper_str_values():
     assert env.str("extra.str.str_8") == "testing" and type(env.str("extra.str.str_8")) == str
 
     assert env.str("extra.str.not_str") is None
+
+
+# test env values
+def test_it_should_get_proper_env_values():
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
+
+    # use get function
+    assert env.get("DEBUG") == "true"
+    assert env.get("DB_DEMO_PORT") == "6969"
+
+    # use typ specific function
+    assert env.bool("DEBUG") is True and type(env.bool("DEBUG")) == bool
+
+    assert env.str("DB_DEMO_HOST") == "127.0.0.1"
+    assert env.int("DB_DEMO_PORT") == 6969
+    assert env.str("DB_DEMO_NAME") == "db_name_demo"
+    assert env.str("DB_DEMO_PASS") == "db_pass_demo"
+
+    assert env.str("DB_DEMO_NOT_SET") == ""

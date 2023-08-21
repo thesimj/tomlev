@@ -34,7 +34,7 @@ try:
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 # pattern to remove comments
 RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
@@ -96,7 +96,7 @@ class TomlEv:
         self.var: NamedTuple = self.__flat_environment(self.__toml_vars)
 
         # build keys
-        self.keys: Dict[str, Any] = self.__flat_keys(self.__toml_vars)
+        self.keys: Dict[str, Any] = {**self.__flat_keys(self.__toml_vars), **self.__vars}
 
     @staticmethod
     def __read_envfile(file_path: Optional[str], strict: bool = True) -> Dict:
