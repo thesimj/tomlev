@@ -25,6 +25,7 @@ import io
 import re
 from os import environ
 from os.path import expandvars
+from pathlib import Path
 from typing import Dict, Any, List, NamedTuple, Set, Optional
 
 try:
@@ -32,7 +33,7 @@ try:
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # pattern to remove comments
 RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
@@ -65,7 +66,7 @@ class TomlEv:
 
     def __init__(
         self,
-        toml_file: Optional[str] = DEFAULT_ENV_TOML_FILE,
+        toml_file: str = DEFAULT_ENV_TOML_FILE,
         env_file: Optional[str] = DEFAULT_ENV_FILE,
         strict: bool = True,
         include_environment: bool = True,
@@ -101,7 +102,8 @@ class TomlEv:
         config: Dict = {}
         defined: Set[str] = set()
 
-        if file_path:
+        # check if file exists in filesystem
+        if file_path and Path(file_path).is_file():
             with io.open(file_path, mode="rt", encoding="utf8") as fp:
                 content: str = expandvars(fp.read())
 
@@ -128,82 +130,78 @@ class TomlEv:
     @staticmethod
     def __read_toml(file_path: str, env: Dict, strict: bool, separator="|") -> Dict:
         # read file
-        if file_path:
-            with io.open(file_path, mode="rt", encoding="utf8") as fp:
-                content: str = fp.read()
+        with io.open(file_path, mode="rt", encoding="utf8") as fp:
+            content: str = fp.read()
 
-            # remove all comments
-            content = RE_COMMENTS.sub("", content)
+        # remove all comments
+        content = RE_COMMENTS.sub("", content)
 
-            # not found variables
-            not_found_variables = set()
+        # not found variables
+        not_found_variables = set()
 
-            # changes dictionary
-            replaces = dict()
+        # changes dictionary
+        replaces = dict()
 
-            shifting = 0
+        shifting = 0
 
-            # iterate over findings
-            for entry in RE_PATTERN.finditer(content):
-                groups = entry.groupdict()  # type: dict
+        # iterate over findings
+        for entry in RE_PATTERN.finditer(content):
+            groups = entry.groupdict()  # type: dict
 
-                # replace
-                variable = None
-                default = None
-                replace = None
+            # replace
+            variable = None
+            default = None
+            replace = None
 
-                if groups["named"]:
-                    variable = groups["named"]
-                    default = groups["named_default"]
+            if groups["named"]:
+                variable = groups["named"]
+                default = groups["named_default"]
 
-                elif groups["braced"]:
-                    variable = groups["braced"]
-                    default = groups["braced_default"]
+            elif groups["braced"]:
+                variable = groups["braced"]
+                default = groups["braced_default"]
 
-                elif groups["escaped"] and "$" in groups["escaped"]:
-                    span = entry.span()
-                    content = content[: span[0] + shifting] + groups["escaped"] + content[span[1] + shifting :]
-                    # Added shifting since every time we update content we are
-                    # changing the original groups spans
-                    shifting += len(groups["escaped"]) - (span[1] - span[0])
+            elif groups["escaped"] and "$" in groups["escaped"]:
+                span = entry.span()
+                content = content[: span[0] + shifting] + groups["escaped"] + content[span[1] + shifting :]
+                # Added shifting since every time we update content we are
+                # changing the original groups spans
+                shifting += len(groups["escaped"]) - (span[1] - span[0])
 
-                if variable is not None:
-                    if variable in env:
-                        replace = env[variable]
-                    elif variable not in env and default is not None:
-                        replace = default
-                    else:
-                        not_found_variables.add(variable)
+            if variable is not None:
+                if variable in env:
+                    replace = env[variable]
+                elif variable not in env and default is not None:
+                    replace = default
+                else:
+                    not_found_variables.add(variable)
 
-                if replace is not None:
-                    # build match
-                    search = "${" if groups["braced"] else "$"
-                    search += variable
-                    search += separator + default if default is not None else ""
-                    search += "}" if groups["braced"] else ""
+            if replace is not None:
+                # build match
+                search = "${" if groups["braced"] else "$"
+                search += variable
+                search += separator + default if default is not None else ""
+                search += "}" if groups["braced"] else ""
 
-                    # store findings
-                    replaces[search] = replace
+                # store findings
+                replaces[search] = replace
 
-            # strict mode
-            if strict and not_found_variables:
-                raise ValueError(
-                    "Strict mode enabled, variables , ".join(["$" + v for v in not_found_variables])
-                    + " are not defined!"
-                )
+        # strict mode
+        if strict and not_found_variables:
+            raise ValueError(
+                "Strict mode enabled, variables , ".join(["$" + v for v in not_found_variables]) + " are not defined!"
+            )
 
-            # replace finding with their respective values
-            for replace in sorted(replaces, reverse=True):
-                content = content.replace(replace, replaces[replace])
+        # replace finding with their respective values
+        for replace in sorted(replaces, reverse=True):
+            content = content.replace(replace, replaces[replace])
 
-            # load proper content
-            toml = tomli_loads(content)
+        # load proper content
+        toml = tomli_loads(content)
 
-            # if contains something
-            if toml and isinstance(toml, (dict, list)):
-                return toml
-
-        return {}
+        # if contains something
+        if toml and isinstance(toml, (dict, list)):
+            return toml
 
     @staticmethod
     def __flat_environment(env: Dict) -> NamedTuple:

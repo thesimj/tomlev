@@ -65,14 +65,25 @@ def test_it_should_work_with_get_funtion():
 
 
 def test_it_should_work_with_strict_mode_disable():
-    with pytest.raises(ValueError) as ex_inf:
+    with pytest.raises(ValueError) as ex:
         TomlEv(
             "tests/tests_not_exists.toml",
             "tests/tests.env",
         )
 
-    assert str(ex_inf.value) == "$NOT_EXISTS are not defined!"
+    assert str(ex.value) == "$NOT_EXISTS are not defined!"
 
 
-def test_it_should_be_loaded_with_no_files():
-    assert TomlEv(None, None)
+def test_it_should_be_loaded_with_none_env_file():
+    assert TomlEv("tests/tests.toml", None, strict=False)
+
+
+def test_it_should_start_with_env_not_found_file():
+    assert TomlEv("tests/tests.toml", ".not-found.env", strict=False)
+
+
+def test_it_should_raise_exception_with_toml_not_found_file():
+    with pytest.raises(FileNotFoundError) as ex:
+        assert TomlEv("not-found.toml", ".not-found.env")
+
+    assert str(ex.value) == "[Errno 2] No such file or directory: 'not-found.toml'"
