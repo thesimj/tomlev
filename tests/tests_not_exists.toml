@@ -4,7 +4,7 @@
 title_toml = "title-000-111"
 time = 2022-01-01T00:00:00+00:00
 date = 2022-01-01
-debug = "${DEBUG}"
+debug = "${DEBUG|false}"
 default = "${NOT_EXISTS|default}"
 environment = "testing"
 not_set = "${NOT_EXISTS}"

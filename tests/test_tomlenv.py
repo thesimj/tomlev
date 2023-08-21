@@ -87,3 +87,60 @@ def test_it_should_raise_exception_with_toml_not_found_file():
         assert TomlEv("not-found.toml", ".not-found.env")
 
     assert str(ex.value) == "[Errno 2] No such file or directory: 'not-found.toml'"
+
+
+def test_it_should_get_proper_bool_values():
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
+
+    # get keys
+    true_keys = [k for k in env.keys if "extra.bool.bool_t" in k]
+    false_keys = [k for k in env.keys if "extra.bool.bool_f" in k]
+
+    for key in true_keys:
+        assert env.bool(key) is True and type(env.bool(key)) == bool
+
+    for key in false_keys:
+        assert env.bool(key) is False and type(env.bool(key)) == bool
+
+    # test default value
+    assert env.bool("not.exists.keys", True) is True
+    assert env.bool("not.exists.keys", False) is False
+    assert env.bool("not.exists.keys") is None
+
+
+def test_it_should_get_proper_int_values():
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
+
+    assert env.int("extra.int.int_1") == 1 and type(env.int("extra.int.int_1")) == int
+    assert env.int("extra.int.int_2") == 2 and type(env.int("extra.int.int_2")) == int
+    assert env.int("extra.int.int_3") == 3 and type(env.int("extra.int.int_3")) == int
+
+    assert env.int("extra.int.not_int") is None
+
+
+# test float values
+def test_it_should_get_proper_float_values():
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
+
+    assert env.float("extra.float.float_1") == 0.0 and type(env.float("extra.float.float_1")) == float
+    assert env.float("extra.float.float_2") == 1.0 and type(env.float("extra.float.float_2")) == float
+    assert env.float("extra.float.float_3") == 2.2 and type(env.float("extra.float.float_3")) == float
+    assert env.float("extra.float.float_4") == 3.1415 and type(env.float("extra.float.float_4")) == float
+
+    assert env.float("extra.float.not_float") is None
+
+
+# test str values
+def test_it_should_get_proper_str_values():
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
+
+    assert env.str("extra.str.str_1") == "0" and type(env.str("extra.str.str_1")) == str
+    assert env.str("extra.str.str_2") == "1.0" and type(env.str("extra.str.str_2")) == str
+    assert env.str("extra.str.str_3") == "2.2" and type(env.str("extra.str.str_3")) == str
+    assert env.str("extra.str.str_4") == "3.1415" and type(env.str("extra.str.str_4")) == str
+    assert env.str("extra.str.str_5") == "true" and type(env.str("extra.str.str_5")) == str
+    assert env.str("extra.str.str_6") == "false" and type(env.str("extra.str.str_6")) == str
+    assert env.str("extra.str.str_7") == "" and type(env.str("extra.str.str_7")) == str
+    assert env.str("extra.str.str_8") == "testing" and type(env.str("extra.str.str_8")) == str
+
+    assert env.str("extra.str.not_str") is None

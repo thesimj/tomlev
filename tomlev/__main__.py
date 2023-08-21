@@ -23,6 +23,7 @@ SOFTWARE.
 """
 import io
 import re
+from decimal import Decimal
 from os import environ
 from os.path import expandvars
 from pathlib import Path
@@ -33,7 +34,7 @@ try:
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 # pattern to remove comments
 RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
@@ -255,6 +256,77 @@ class TomlEv:
         """
 
         return self.keys.get(key, default)
+
+    def bool(self, key: str, default: bool = None) -> Optional[bool]:
+        """Return boolean value from environment
+
+        :param any key: name for the configuration key
+        :param any default: default value if no key found
+        :return: any
+        """
+
+        value = self.get(key, default)
+
+        if isinstance(value, str):
+            return value.lower() in ("true", "1", "yes", "y", "on")
+
+        return value
+
+    def str(self, key: str, default: str = None) -> Optional[str]:
+        """Return string value from environment
+
+        :param any key: name for the configuration key
+        :param any default: default value if no key found
+        :return: any
+        """
+
+        value = self.get(key, default)
+
+        # special case for bool
+        if isinstance(value, bool):
+            return str(value).lower()
+
+        # special case for None
+        elif not (isinstance(value, str) or value is None):
+            return str(value)
+
+        return value
+
+    def int(self, key: str, default: int = None) -> Optional[int]:
+        """Return integer value from environment
+
+        :param any key: name for the configuration key
+        :param any default: default value if no key found
+        :return: any
+        """
+
+        value = self.get(key, default)
+
+        if isinstance(value, str):
+            try:
+                return int(Decimal(value))
+            except ArithmeticError:
+                return default
+
+        return value
+
+    def float(self, key: str, default: float = None) -> Optional[float]:
+        """Return float value from environment
+
+        :param any key: name for the configuration key
+        :param any default: default value if no key found
+        :return: any
+        """
+
+        value = self.get(key, default)
+
+        if isinstance(value, str):
+            try:
+                return float(Decimal(value))
+            except ArithmeticError:
+                return default
+
+        return value
 
     def __contains__(self, item: str) -> bool:
         """Check if key in configuration
