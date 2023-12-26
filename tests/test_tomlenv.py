@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, date
 from typing import Dict
 
@@ -97,10 +98,10 @@ def test_it_should_get_proper_bool_values():
     false_keys = [k for k in env.keys if "extra.bool.bool_f" in k]
 
     for key in true_keys:
-        assert env.bool(key) is True and type(env.bool(key)) == bool
+        assert env.bool(key) is True and isinstance(env.bool(key), bool)
 
     for key in false_keys:
-        assert env.bool(key) is False and type(env.bool(key)) == bool
+        assert env.bool(key) is False and isinstance(env.bool(key), bool)
 
     # test default value
     assert env.bool("not.exists.keys", True) is True
@@ -111,9 +112,15 @@ def test_it_should_get_proper_bool_values():
 def test_it_should_get_proper_int_values():
     env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
-    assert env.int("extra.int.int_1") == 1 and type(env.int("extra.int.int_1")) == int
-    assert env.int("extra.int.int_2") == 2 and type(env.int("extra.int.int_2")) == int
-    assert env.int("extra.int.int_3") == 3 and type(env.int("extra.int.int_3")) == int
+    assert env.int("extra.int.int_1") == 1 and isinstance(
+        env.int("extra.int.int_1"), int
+    )
+    assert env.int("extra.int.int_2") == 2 and isinstance(
+        env.int("extra.int.int_2"), int
+    )
+    assert env.int("extra.int.int_3") == 3 and isinstance(
+        env.int("extra.int.int_3"), int
+    )
 
     assert env.int("extra.int.not_int") is None
 
@@ -122,10 +129,18 @@ def test_it_should_get_proper_int_values():
 def test_it_should_get_proper_float_values():
     env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
-    assert env.float("extra.float.float_1") == 0.0 and type(env.float("extra.float.float_1")) == float
-    assert env.float("extra.float.float_2") == 1.0 and type(env.float("extra.float.float_2")) == float
-    assert env.float("extra.float.float_3") == 2.2 and type(env.float("extra.float.float_3")) == float
-    assert env.float("extra.float.float_4") == 3.1415 and type(env.float("extra.float.float_4")) == float
+    assert env.float("extra.float.float_1") == 0.0 and isinstance(
+        env.float("extra.float.float_1"), float
+    )
+    assert env.float("extra.float.float_2") == 1.0 and isinstance(
+        env.float("extra.float.float_2"), float
+    )
+    assert env.float("extra.float.float_3") == 2.2 and isinstance(
+        env.float("extra.float.float_3"), float
+    )
+    assert env.float("extra.float.float_4") == 3.1415 and isinstance(
+        env.float("extra.float.float_4"), float
+    )
 
     assert env.float("extra.float.not_float") is None
 
@@ -134,14 +149,30 @@ def test_it_should_get_proper_float_values():
 def test_it_should_get_proper_str_values():
     env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
-    assert env.str("extra.str.str_1") == "0" and type(env.str("extra.str.str_1")) == str
-    assert env.str("extra.str.str_2") == "1.0" and type(env.str("extra.str.str_2")) == str
-    assert env.str("extra.str.str_3") == "2.2" and type(env.str("extra.str.str_3")) == str
-    assert env.str("extra.str.str_4") == "3.1415" and type(env.str("extra.str.str_4")) == str
-    assert env.str("extra.str.str_5") == "true" and type(env.str("extra.str.str_5")) == str
-    assert env.str("extra.str.str_6") == "false" and type(env.str("extra.str.str_6")) == str
-    assert env.str("extra.str.str_7") == "" and type(env.str("extra.str.str_7")) == str
-    assert env.str("extra.str.str_8") == "testing" and type(env.str("extra.str.str_8")) == str
+    assert env.str("extra.str.str_1") == "0" and isinstance(
+        env.str("extra.str.str_1"), str
+    )
+    assert env.str("extra.str.str_2") == "1.0" and isinstance(
+        env.str("extra.str.str_2"), str
+    )
+    assert env.str("extra.str.str_3") == "2.2" and isinstance(
+        env.str("extra.str.str_3"), str
+    )
+    assert env.str("extra.str.str_4") == "3.1415" and isinstance(
+        env.str("extra.str.str_4"), str
+    )
+    assert env.str("extra.str.str_5") == "true" and isinstance(
+        env.str("extra.str.str_5"), str
+    )
+    assert env.str("extra.str.str_6") == "false" and isinstance(
+        env.str("extra.str.str_6"), str
+    )
+    assert env.str("extra.str.str_7") == "" and isinstance(
+        env.str("extra.str.str_7"), str
+    )
+    assert env.str("extra.str.str_8") == "testing" and isinstance(
+        env.str("extra.str.str_8"), str
+    )
 
     assert env.str("extra.str.not_str") is None
 
@@ -155,7 +186,7 @@ def test_it_should_get_proper_env_values():
     assert env.get("DB_DEMO_PORT") == "6969"
 
     # use typ specific function
-    assert env.bool("DEBUG") is True and type(env.bool("DEBUG")) == bool
+    assert env.bool("DEBUG") is True and isinstance(env.bool("DEBUG"), bool)
 
     assert env.str("DB_DEMO_HOST") == "127.0.0.1"
     assert env.int("DB_DEMO_PORT") == 6969
@@ -163,3 +194,24 @@ def test_it_should_get_proper_env_values():
     assert env.str("DB_DEMO_PASS") == "db_pass_demo"
 
     assert env.str("DB_DEMO_NOT_SET") == ""
+
+
+def test_it_should_properly_disable_strict_on_env():
+    os.environ["TOMLEV_STRICT_DISABLE"] = "true"
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
+
+    assert env.strict is False
+
+
+def test_it_should_properly_disable_strict_on_class():
+    os.environ.pop("TOMLEV_STRICT_DISABLE", None)
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env", strict=False)
+
+    assert env.strict is False
+
+
+def test_it_should_properly_enable_strict_on():
+    os.environ.pop("TOMLEV_STRICT_DISABLE", None)
+    env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
+
+    assert env.strict is True

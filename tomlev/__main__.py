@@ -34,7 +34,7 @@ try:
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 # pattern to remove comments
 RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
@@ -81,7 +81,14 @@ class TomlEv:
         self.__vars: Dict = dict(environ) if include_environment else {}
 
         # set strict mode to false if "TOMLEV_STRICT_DISABLE" presents in env else use "strict" from function
-        self.__strict = environ.get("TOMLEV_STRICT_DISABLE", strict)
+        self.__strict = (
+            (
+                environ["TOMLEV_STRICT_DISABLE"].lower()
+                not in ("true", "1", "yes", "y", "on")
+            )
+            if "TOMLEV_STRICT_DISABLE" in environ
+            else strict
+        )
 
         # read .env files and update environment variables
         self.__dotenv: Dict = self.__read_envfile(env_file, self.__strict)
@@ -96,7 +103,10 @@ class TomlEv:
         self.var: NamedTuple = self.__flat_environment(self.__toml_vars)
 
         # build keys
-        self.keys: Dict[str, Any] = {**self.__flat_keys(self.__toml_vars), **self.__vars}
+        self.keys: Dict[str, Any] = {
+            **self.__flat_keys(self.__toml_vars),
+            **self.__vars,
+        }
 
     @staticmethod
     def __read_envfile(file_path: Optional[str], strict: bool = True) -> Dict:
@@ -123,7 +133,9 @@ class TomlEv:
                 # strict mode
         if strict and defined:
             raise ValueError(
-                "Strict mode enabled, variables " + ", ".join(["$" + v for v in defined]) + " defined several times!"
+                "Strict mode enabled, variables "
+                + ", ".join(["$" + v for v in defined])
+                + " defined several times!"
             )
 
         return config
@@ -164,7 +176,11 @@ class TomlEv:
 
             elif groups["escaped"] and "$" in groups["escaped"]:
                 span = entry.span()
-                content = content[: span[0] + shifting] + groups["escaped"] + content[span[1] + shifting :]
+                content = (
+                    content[: span[0] + shifting]
+                    + groups["escaped"]
+                    + content[span[1] + shifting :]
+                )
                 # Added shifting since every time we update content we are
                 # changing the original groups spans
                 shifting += len(groups["escaped"]) - (span[1] - span[0])
@@ -190,7 +206,10 @@ class TomlEv:
         # strict mode
         if strict and not_found_variables:
             raise ValueError(
-                "Strict mode enabled, variables , ".join(["$" + v for v in not_found_variables]) + " are not defined!"
+                " Strict mode enabled, variables, ".join(
+                    ["$" + v for v in not_found_variables]
+                )
+                + " are not defined!"
             )
 
         # replace finding with their respective values
@@ -238,6 +257,14 @@ class TomlEv:
         :return: A mapping object representing the string environment
         """
         return self.__vars
+
+    @property
+    def strict(self) -> bool:
+        """Get strict mode
+
+        :return: bool
+        """
+        return self.__strict
 
     def format(self, key: str, **kwargs) -> str:
         """Apply quick format for string values with {arg}
