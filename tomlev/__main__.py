@@ -1,7 +1,7 @@
 """
 MIT License
 
-Copyright (c) 2022 Mykola Bubelich
+Copyright (c) 2022 Nick Bubelich
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,20 +21,21 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+
 import io
 import re
 from decimal import Decimal
 from os import environ
 from os.path import expandvars
 from pathlib import Path
-from typing import Dict, Any, List, NamedTuple, Set, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Set
 
 try:
     from tomli import loads as tomli_loads
 except ImportError:
     tomli_loads = None
 
-__version__ = "0.2.2"
+__version__ = "0.3.1"
 
 # pattern to remove comments
 RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
@@ -57,7 +58,7 @@ RE_PATTERN = re.compile(
 
 
 class TomlEv:
-    TOMLEV_STRICT_DISABLE: str = "ENVYAML_STRICT_DISABLE"
+    TOMLEV_STRICT_DISABLE: str = "TOMLEV_STRICT_DISABLE"
     DEFAULT_ENV_TOML_FILE: str = "env.toml"
     DEFAULT_ENV_FILE: str = ".env"
 
@@ -82,10 +83,7 @@ class TomlEv:
 
         # set strict mode to false if "TOMLEV_STRICT_DISABLE" presents in env else use "strict" from function
         self.__strict = (
-            (
-                environ["TOMLEV_STRICT_DISABLE"].lower()
-                not in ("true", "1", "yes", "y", "on")
-            )
+            (environ["TOMLEV_STRICT_DISABLE"].lower() not in ("true", "1", "yes", "y", "on"))
             if "TOMLEV_STRICT_DISABLE" in environ
             else strict
         )
@@ -133,9 +131,7 @@ class TomlEv:
                 # strict mode
         if strict and defined:
             raise ValueError(
-                "Strict mode enabled, variables "
-                + ", ".join(["$" + v for v in defined])
-                + " defined several times!"
+                "Strict mode enabled, variables " + ", ".join(["$" + v for v in defined]) + " defined several times!"
             )
 
         return config
@@ -176,11 +172,7 @@ class TomlEv:
 
             elif groups["escaped"] and "$" in groups["escaped"]:
                 span = entry.span()
-                content = (
-                    content[: span[0] + shifting]
-                    + groups["escaped"]
-                    + content[span[1] + shifting :]
-                )
+                content = content[: span[0] + shifting] + groups["escaped"] + content[span[1] + shifting :]
                 # Added shifting since every time we update content we are
                 # changing the original groups spans
                 shifting += len(groups["escaped"]) - (span[1] - span[0])
@@ -206,9 +198,8 @@ class TomlEv:
         # strict mode
         if strict and not_found_variables:
             raise ValueError(
-                " Strict mode enabled, variables, ".join(
-                    ["$" + v for v in not_found_variables]
-                )
+                "Strict mode enabled, variables "
+                + ", ".join(["$" + v for v in not_found_variables])
                 + " are not defined!"
             )
 

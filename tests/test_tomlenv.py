@@ -1,11 +1,11 @@
 import os
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import Dict
 
 import pytest
 from tomli import loads
 
-from tomlev import __version__, TomlEv
+from tomlev import TomlEv, __version__
 
 
 def test_it_should_match_module_version():
@@ -72,7 +72,7 @@ def test_it_should_work_with_strict_mode_disable():
             "tests/tests.env",
         )
 
-    assert str(ex.value) == "$NOT_EXISTS are not defined!"
+    assert str(ex.value) == "Strict mode enabled, variables $NOT_EXISTS are not defined!"
 
 
 def test_it_should_be_loaded_with_none_env_file():
@@ -112,15 +112,9 @@ def test_it_should_get_proper_bool_values():
 def test_it_should_get_proper_int_values():
     env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
-    assert env.int("extra.int.int_1") == 1 and isinstance(
-        env.int("extra.int.int_1"), int
-    )
-    assert env.int("extra.int.int_2") == 2 and isinstance(
-        env.int("extra.int.int_2"), int
-    )
-    assert env.int("extra.int.int_3") == 3 and isinstance(
-        env.int("extra.int.int_3"), int
-    )
+    assert env.int("extra.int.int_1") == 1 and isinstance(env.int("extra.int.int_1"), int)
+    assert env.int("extra.int.int_2") == 2 and isinstance(env.int("extra.int.int_2"), int)
+    assert env.int("extra.int.int_3") == 3 and isinstance(env.int("extra.int.int_3"), int)
 
     assert env.int("extra.int.not_int") is None
 
@@ -129,18 +123,10 @@ def test_it_should_get_proper_int_values():
 def test_it_should_get_proper_float_values():
     env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
-    assert env.float("extra.float.float_1") == 0.0 and isinstance(
-        env.float("extra.float.float_1"), float
-    )
-    assert env.float("extra.float.float_2") == 1.0 and isinstance(
-        env.float("extra.float.float_2"), float
-    )
-    assert env.float("extra.float.float_3") == 2.2 and isinstance(
-        env.float("extra.float.float_3"), float
-    )
-    assert env.float("extra.float.float_4") == 3.1415 and isinstance(
-        env.float("extra.float.float_4"), float
-    )
+    assert env.float("extra.float.float_1") == 0.0 and isinstance(env.float("extra.float.float_1"), float)
+    assert env.float("extra.float.float_2") == 1.0 and isinstance(env.float("extra.float.float_2"), float)
+    assert env.float("extra.float.float_3") == 2.2 and isinstance(env.float("extra.float.float_3"), float)
+    assert env.float("extra.float.float_4") == 3.1415 and isinstance(env.float("extra.float.float_4"), float)
 
     assert env.float("extra.float.not_float") is None
 
@@ -149,30 +135,14 @@ def test_it_should_get_proper_float_values():
 def test_it_should_get_proper_str_values():
     env: TomlEv = TomlEv("tests/tests.toml", "tests/tests.env")
 
-    assert env.str("extra.str.str_1") == "0" and isinstance(
-        env.str("extra.str.str_1"), str
-    )
-    assert env.str("extra.str.str_2") == "1.0" and isinstance(
-        env.str("extra.str.str_2"), str
-    )
-    assert env.str("extra.str.str_3") == "2.2" and isinstance(
-        env.str("extra.str.str_3"), str
-    )
-    assert env.str("extra.str.str_4") == "3.1415" and isinstance(
-        env.str("extra.str.str_4"), str
-    )
-    assert env.str("extra.str.str_5") == "true" and isinstance(
-        env.str("extra.str.str_5"), str
-    )
-    assert env.str("extra.str.str_6") == "false" and isinstance(
-        env.str("extra.str.str_6"), str
-    )
-    assert env.str("extra.str.str_7") == "" and isinstance(
-        env.str("extra.str.str_7"), str
-    )
-    assert env.str("extra.str.str_8") == "testing" and isinstance(
-        env.str("extra.str.str_8"), str
-    )
+    assert env.str("extra.str.str_1") == "0" and isinstance(env.str("extra.str.str_1"), str)
+    assert env.str("extra.str.str_2") == "1.0" and isinstance(env.str("extra.str.str_2"), str)
+    assert env.str("extra.str.str_3") == "2.2" and isinstance(env.str("extra.str.str_3"), str)
+    assert env.str("extra.str.str_4") == "3.1415" and isinstance(env.str("extra.str.str_4"), str)
+    assert env.str("extra.str.str_5") == "true" and isinstance(env.str("extra.str.str_5"), str)
+    assert env.str("extra.str.str_6") == "false" and isinstance(env.str("extra.str.str_6"), str)
+    assert env.str("extra.str.str_7") == "" and isinstance(env.str("extra.str.str_7"), str)
+    assert env.str("extra.str.str_8") == "testing" and isinstance(env.str("extra.str.str_8"), str)
 
     assert env.str("extra.str.not_str") is None
 

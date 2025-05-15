@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "tomlev"
-version = "0.2.2"
-description = "TomlEv - Open-source Python framework to manage environment variables"
+version = "0.3.1"
+description = "TomlEv is a lightweight Python framework designed to simplify environment variable management using TOML configuration files."
 authors = ["Mykola Bubelich <m+github@bubelich.com>"]
 license = "MIT"
 readme = "README.md"
@@ -14,10 +14,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Typing :: Typed",
@@ -25,14 +25,14 @@ classifiers = [
 include = ["LICENSE"]
 
 [tool.poetry.dependencies]
-python = ">=3.8.1"
-tomli = "^2.0.0"
+python = ">=3.9"
+tomli = "^2.2.0"
 
-[tool.poetry.dev-dependencies]
-ruff = "^0.1.7"
-pytest = "^7.4.0"
-pre-commit = "^3.5.0"
-pytest-cov = "^4.1.0"
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.11.0"
+pytest = "^8.3.0"
+pre-commit = "^4.2.0"
+pytest-cov = "^6.1.0"
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/thesimj/tomlev/issues"
@@ -45,26 +45,60 @@ build-backend = "poetry.core.masonry.api"
 branch = true
 source = ['tomlev']
 
-[tool.flake8]
-max-line-length = 120
-select = "C,E,F,W,B,B9"
-extend-ignore = ["E203", "E266", "E501", "W503", "F403", "F401"]
-exclude = ".git,.venv,__pycache__"
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
 
-[tool.black]
+# Same as Black.
 line-length = 120
-target-version = ['py38']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+indent-width = 4
+
+# Assume Python 3.12
+target-version = "py312"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = ["I", "E4", "E7", "E9", "F"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
