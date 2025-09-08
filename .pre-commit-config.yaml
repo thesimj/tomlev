@@ -1,21 +1,23 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
+      - id: check-ast
       - id: check-yaml
+      - id: check-toml
+      - id: check-json
       - id: end-of-file-fixer
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.9.6
+    rev: v0.12.0
     hooks:
       # Run the Ruff linter.
-      - id: ruff
+      - id: ruff-check
         args: [ --fix, --exit-non-zero-on-fix ]
+        types_or: [ python, pyi ]
 
       # Run the Ruff formatter.
       - id: ruff-format
-
-      # Run the Ruff linter.
-      - id: ruff
+        types_or: [ python, pyi ]
