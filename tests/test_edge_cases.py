@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from tomlev import BaseConfigModel, TomlEv
+from tomlev import BaseConfigModel, ConfigValidationError, TomlEv
 
 
 class EdgeCaseConfig(BaseConfigModel):
@@ -24,7 +24,7 @@ def test_strict_mode_with_dotenv_duplicates():
 
     try:
         # Should raise error in strict mode
-        with pytest.raises(ValueError, match="Strict mode enabled, variables.*defined several times"):
+        with pytest.raises(ConfigValidationError, match="Strict mode enabled, variables.*defined several times"):
             TomlEv(EdgeCaseConfig, toml_file, env_file, strict=True)
     finally:
         os.unlink(env_file)
@@ -39,7 +39,7 @@ def test_strict_mode_with_missing_variables():
 
     try:
         # Should raise error in strict mode
-        with pytest.raises(ValueError, match="Strict mode enabled, variables.*are not defined"):
+        with pytest.raises(ConfigValidationError, match="Strict mode enabled, variables.*are not defined"):
             TomlEv(EdgeCaseConfig, toml_file, None, strict=True)
     finally:
         os.unlink(toml_file)
@@ -229,5 +229,19 @@ debug = false
         assert config.name == "test"
         assert config.port == 8080
         assert config.debug is False
+    finally:
+        os.unlink(toml_file)
+
+
+def test_undefined_variable_raises_config_validation_error():
+    """Test that undefined variables raise ConfigValidationError not ValueError"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+        f.write('name = "$NOT_DEFINED"\nport = 8080\ndebug = false')
+        toml_file = f.name
+
+    try:
+        # Should raise ConfigValidationError in strict mode
+        with pytest.raises(ConfigValidationError, match="variables.*are not defined"):
+            TomlEv(EdgeCaseConfig, toml_file, None, strict=True)
     finally:
         os.unlink(toml_file)

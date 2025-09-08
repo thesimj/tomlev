@@ -30,7 +30,7 @@ from pathlib import Path
 from tomllib import loads as toml_loads
 from typing import Any, Generic, TypeAlias, TypeVar
 
-from tomlev.__model__ import BaseConfigModel
+from tomlev.__model__ import BaseConfigModel, ConfigValidationError
 
 __version__ = "1.0.0"
 
@@ -183,10 +183,15 @@ class TomlEv(Generic[T]):
         # strict mode - maintain backward compatibility for error messages
         if strict and defined:
             duplicate_vars = sorted(defined)
-            raise ValueError(
-                "Strict mode enabled, variables "
-                + ", ".join(["$" + v for v in duplicate_vars])
-                + " defined several times!"
+            raise ConfigValidationError(
+                [
+                    (
+                        "environment_variables",
+                        "Strict mode enabled, variables "
+                        + ", ".join(["$" + v for v in duplicate_vars])
+                        + " defined several times!",
+                    )
+                ]
             )
 
         return config
@@ -265,8 +270,15 @@ class TomlEv(Generic[T]):
         # strict mode - maintain backward compatibility for error messages
         if strict and not_found_variables:
             missing_vars = sorted(not_found_variables)
-            raise ValueError(
-                "Strict mode enabled, variables " + ", ".join(["$" + v for v in missing_vars]) + " are not defined!"
+            raise ConfigValidationError(
+                [
+                    (
+                        "environment_variables",
+                        "Strict mode enabled, variables "
+                        + ", ".join(["$" + v for v in missing_vars])
+                        + " are not defined!",
+                    )
+                ]
             )
 
         # replace finding with their respective values
