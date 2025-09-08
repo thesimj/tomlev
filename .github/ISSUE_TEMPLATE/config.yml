@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/thesimj/tomlev/blob/main/README.md
+    about: Check the documentation for usage examples and API reference
+  - name: 💬 Discussions
+    url: https://github.com/thesimj/tomlev/discussions
+    about: Ask questions, share ideas, or discuss TomlEv with the community
+  - name: 🔒 Security Issues
+    url: mailto:m+security@bubelich.com
+    about: Please report security vulnerabilities privately via email

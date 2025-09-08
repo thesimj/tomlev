@@ -1,7 +1,7 @@
 """
 MIT License
 
-Copyright (c) 2022 Nick Bubelich
+Copyright (c) 2025 Nick Bubelich
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,21 @@ SOFTWARE.
 
 import io
 import re
-from decimal import Decimal
 from os import environ
 from os.path import expandvars
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Set
+from tomllib import loads as toml_loads
+from typing import Any, Generic, TypeAlias, TypeVar
 
-try:
-    from tomli import loads as tomli_loads
-except ImportError:
-    tomli_loads = None
+from tomlev.__model__ import BaseConfigModel
 
-__version__ = "0.3.1"
+__version__ = "1.0.0a1"
+
+T = TypeVar("T", bound=BaseConfigModel)
+
+# Type aliases for clarity
+ConfigDict: TypeAlias = dict[str, Any]
+EnvDict: TypeAlias = dict[str, Any]
 
 # pattern to remove comments
 RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
@@ -50,68 +53,117 @@ RE_DOT_ENV = re.compile(
 RE_PATTERN = re.compile(
     r"(?P<pref>[\"\'])?"
     r"(\$(?:(?P<escaped>(\$|\d+))|"
-    r"{(?P<braced>(.*?))(\|(?P<braced_default>.*?))?}|"
+    r"{(?P<braced>(.*?))(\|-(?P<braced_default>.*?))?}|"
     r"(?P<named>[\w\-\.]+)(\|(?P<named_default>.*))?))"
     r"(?P<post>[\"\'])?",
     re.MULTILINE | re.UNICODE | re.IGNORECASE | re.VERBOSE,
 )
 
 
-class TomlEv:
+class TomlEv(Generic[T]):
+    """Type-safe TOML configuration loader with environment variable substitution.
+
+    TomlEv provides a convenient way to load configuration from TOML files
+    while supporting environment variable substitution using ${VAR|-default} syntax.
+    It automatically validates and converts types based on the provided configuration model.
+
+    Args:
+        Generic[T]: The configuration model type that extends BaseConfigModel.
+
+    Attributes:
+        TOMLEV_STRICT_DISABLE: Environment variable name to disable strict mode globally.
+        DEFAULT_ENV_TOML_FILE: Default TOML configuration file name.
+        DEFAULT_ENV_FILE: Default environment file name.
+
+    Example:
+        ```python
+        class AppConfig(BaseConfigModel):
+            host: str
+            port: int
+            debug: bool
+
+        # Load configuration with automatic validation
+        config = TomlEv(AppConfig, "env.toml", ".env").validate()
+
+        # Access type-safe configuration
+        print(f"Server running on {config.host}:{config.port}")
+        ```
+    """
+
     TOMLEV_STRICT_DISABLE: str = "TOMLEV_STRICT_DISABLE"
     DEFAULT_ENV_TOML_FILE: str = "env.toml"
     DEFAULT_ENV_FILE: str = ".env"
 
     # variables
-    __vars: Dict = None
-    __strict: bool = True
+    __vars: EnvDict
+    __strict: bool
+    __cls: T
 
     def __init__(
         self,
+        cls: type[T],
         toml_file: str = DEFAULT_ENV_TOML_FILE,
-        env_file: Optional[str] = DEFAULT_ENV_FILE,
+        env_file: str | None = DEFAULT_ENV_FILE,
         strict: bool = True,
         include_environment: bool = True,
-    ):
-        if tomli_loads is None:
-            raise ModuleNotFoundError(
-                'TomlEv require "tomli >= 2" module to work. Consider install this module into environment!'
-            )
+    ) -> None:
+        """Initialize TomlEv configuration loader.
 
+        Args:
+            cls: Configuration model class that extends BaseConfigModel.
+            toml_file: Path to the TOML configuration file. Defaults to "env.toml".
+            env_file: Path to the .env file for environment variables.
+                     Set to None to skip loading .env file. Defaults to ".env".
+            strict: Whether to enforce strict mode validation. When True, raises
+                   errors for undefined variables or duplicates. Defaults to True.
+            include_environment: Whether to include system environment variables.
+                               Defaults to True.
+
+        Raises:
+            ValueError: In strict mode, when environment variables are undefined
+                       or when duplicate variables are found in .env file.
+            FileNotFoundError: When the specified TOML file doesn't exist.
+
+        Note:
+            Strict mode can be globally disabled by setting the environment
+            variable TOMLEV_STRICT_DISABLE to "true", "1", "yes", "y", or "on".
+        """
         # read environment
-        self.__vars: Dict = dict(environ) if include_environment else {}
+        self.__vars: EnvDict = dict(environ) if include_environment else {}
 
-        # set strict mode to false if "TOMLEV_STRICT_DISABLE" presents in env else use "strict" from function
+        # set strict mode to false if "TOMLEV_STRICT_DISABLE" presents in env else use "strict" from the function
         self.__strict = (
-            (environ["TOMLEV_STRICT_DISABLE"].lower() not in ("true", "1", "yes", "y", "on"))
+            (environ["TOMLEV_STRICT_DISABLE"].lower() not in {"true", "1", "yes", "y", "on", "t"})
             if "TOMLEV_STRICT_DISABLE" in environ
             else strict
         )
 
         # read .env files and update environment variables
-        self.__dotenv: Dict = self.__read_envfile(env_file, self.__strict)
+        self.__dotenv: ConfigDict = self.__read_envfile(env_file, self.__strict)
 
         # set environ with dot env variables
         self.__vars.update(self.__dotenv)
 
         # read toml files
-        self.__toml_vars = self.__read_toml(toml_file, self.__vars, self.__strict)
+        self.__toml_vars: ConfigDict = self.__read_toml(toml_file, self.__vars, self.__strict)
 
-        # build named NamedTuple
-        self.var: NamedTuple = self.__flat_environment(self.__toml_vars)
-
-        # build keys
-        self.keys: Dict[str, Any] = {
-            **self.__flat_keys(self.__toml_vars),
-            **self.__vars,
-        }
+        self.__cls = cls(**self.__toml_vars)
 
     @staticmethod
-    def __read_envfile(file_path: Optional[str], strict: bool = True) -> Dict:
-        config: Dict = {}
-        defined: Set[str] = set()
+    def __read_envfile(file_path: str | None, strict: bool = True) -> ConfigDict:
+        """Read and parse environment variables from a .env file.
 
-        # check if file exists in filesystem
+        Args:
+            file_path: Path to the .env file to read, or None if no file.
+            strict: Whether to operate in strict mode for error handling.
+
+        Returns:
+            Dictionary of environment variable names to values.
+        """
+        config: ConfigDict = {}
+        defined: set[str] = set()
+
+        # check if a file exists in filesystem
         if file_path and Path(file_path).is_file():
             with io.open(file_path, mode="rt", encoding="utf8") as fp:
                 content: str = expandvars(fp.read())
@@ -128,16 +180,30 @@ class TomlEv:
                 # set config
                 config[name] = value
 
-                # strict mode
+        # strict mode - maintain backward compatibility for error messages
         if strict and defined:
+            duplicate_vars = sorted(defined)
             raise ValueError(
-                "Strict mode enabled, variables " + ", ".join(["$" + v for v in defined]) + " defined several times!"
+                "Strict mode enabled, variables "
+                + ", ".join(["$" + v for v in duplicate_vars])
+                + " defined several times!"
             )
 
         return config
 
     @staticmethod
-    def __read_toml(file_path: str, env: Dict, strict: bool, separator="|") -> Dict:
+    def __read_toml(file_path: str, env: EnvDict, strict: bool, separator: str = "|-") -> ConfigDict:
+        """Read and parse TOML file with environment variable substitution.
+
+        Args:
+            file_path: Path to the TOML file to read.
+            env: Dictionary of environment variables for substitution.
+            strict: Whether to operate in strict mode for error handling.
+            separator: Separator string for default values in environment variables.
+
+        Returns:
+            Dictionary of parsed TOML configuration with substituted values.
+        """
         # read file
         with io.open(file_path, mode="rt", encoding="utf8") as fp:
             content: str = fp.read()
@@ -148,34 +214,34 @@ class TomlEv:
         # not found variables
         not_found_variables = set()
 
-        # changes dictionary
-        replaces = dict()
+        # change dictionary
+        replaces: dict[str, str] = {}
 
         shifting = 0
 
         # iterate over findings
         for entry in RE_PATTERN.finditer(content):
-            groups = entry.groupdict()  # type: dict
+            groups = entry.groupdict()
 
             # replace
-            variable = None
-            default = None
-            replace = None
+            variable: str | None = None
+            default: str | None = None
+            replace: str | None = None
 
-            if groups["named"]:
-                variable = groups["named"]
-                default = groups["named_default"]
-
-            elif groups["braced"]:
-                variable = groups["braced"]
-                default = groups["braced_default"]
-
-            elif groups["escaped"] and "$" in groups["escaped"]:
-                span = entry.span()
-                content = content[: span[0] + shifting] + groups["escaped"] + content[span[1] + shifting :]
-                # Added shifting since every time we update content we are
-                # changing the original groups spans
-                shifting += len(groups["escaped"]) - (span[1] - span[0])
+            # Use structural pattern matching for better readability
+            match groups:
+                case {"named": name, "named_default": def_val} if name:
+                    variable = name
+                    default = def_val
+                case {"braced": name, "braced_default": def_val} if name:
+                    variable = name
+                    default = def_val
+                case {"escaped": esc_val} if esc_val and "$" in esc_val:
+                    span = entry.span()
+                    content = content[: span[0] + shifting] + esc_val + content[span[1] + shifting :]
+                    # Added shifting since every time we update content, we are
+                    # changing the original groups spans
+                    shifting += len(esc_val) - (span[1] - span[0])
 
             if variable is not None:
                 if variable in env:
@@ -185,22 +251,22 @@ class TomlEv:
                 else:
                     not_found_variables.add(variable)
 
-            if replace is not None:
+            if replace is not None and variable is not None:
                 # build match
                 search = "${" if groups["braced"] else "$"
                 search += variable
-                search += separator + default if default is not None else ""
+                if default is not None:
+                    search += separator + default
                 search += "}" if groups["braced"] else ""
 
                 # store findings
                 replaces[search] = replace
 
-        # strict mode
+        # strict mode - maintain backward compatibility for error messages
         if strict and not_found_variables:
+            missing_vars = sorted(not_found_variables)
             raise ValueError(
-                "Strict mode enabled, variables "
-                + ", ".join(["$" + v for v in not_found_variables])
-                + " are not defined!"
+                "Strict mode enabled, variables " + ", ".join(["$" + v for v in missing_vars]) + " are not defined!"
             )
 
         # replace finding with their respective values
@@ -208,157 +274,44 @@ class TomlEv:
             content = content.replace(replace, replaces[replace])
 
         # load proper content
-        toml = tomli_loads(content)
+        toml = toml_loads(content)
 
         # if contains something
-        if toml and isinstance(toml, (dict, list)):
+        if toml and isinstance(toml, dict):
             return toml
 
-    @staticmethod
-    def __flat_environment(env: Dict) -> NamedTuple:
-        keys: List[(str, Any)] = []
-        values: List[Any] = []
-
-        for key, value in env.items():
-            if isinstance(value, dict):
-                keys.append((key, "NamedTuple"))
-                values.append(TomlEv.__flat_environment(value))
-            else:
-                keys.append((key, type(value)))
-                values.append(value)
-
-        return NamedTuple("NamedTuple", [*keys])(*values)
-
-    @staticmethod
-    def __flat_keys(env: Dict, root: str = "") -> Dict:
-        config: Dict = {}
-
-        for key, value in env.items():
-            if isinstance(value, dict):
-                config.update(TomlEv.__flat_keys(value, root=f"{root}{key}."))
-            else:
-                config[f"{root}{key}"] = value
-
-        return config
+        return {}
 
     @property
-    def environ(self) -> Dict:
-        """Get environments mapping object including .env variables
+    def environ(self) -> EnvDict:
+        """Get the combined environment variables mapping.
 
-        :return: A mapping object representing the string environment
+        Returns a dictionary containing both system environment variables
+        and variables loaded from the .env file.
+
+        Returns:
+            Dictionary containing all environment variables available to the configuration.
         """
         return self.__vars
 
     @property
     def strict(self) -> bool:
-        """Get strict mode
+        """Get the current strict mode setting.
 
-        :return: bool
+        Returns:
+            True if strict mode is enabled, False otherwise.
         """
         return self.__strict
 
-    def format(self, key: str, **kwargs) -> str:
-        """Apply quick format for string values with {arg}
+    def validate(self) -> T:
+        """Validate and return the loaded configuration.
 
-        :param str key: key to argument
-        :return: str
+        Returns:
+            The validated configuration model instance with all values
+            properly typed and converted.
+
+        Raises:
+            ConfigValidationError: When configuration validation fails due to
+                                  type conversion errors or missing required fields.
         """
-        return self.keys[key].format(**kwargs)
-
-    def get(self, key: str, default: Any = None):
-        """Get configuration variable with default value. If no `default` value set use None
-
-        :param any key: name for the configuration key
-        :param any default: default value if no key found
-        :return: any
-        """
-
-        return self.keys.get(key, default)
-
-    def bool(self, key: str, default: bool = None) -> Optional[bool]:
-        """Return boolean value from environment
-
-        :param any key: name for the configuration key
-        :param any default: default value if no key found
-        :return: any
-        """
-
-        value = self.get(key, default)
-
-        if isinstance(value, str):
-            return value.lower() in ("true", "1", "yes", "y", "on")
-
-        return value
-
-    def str(self, key: str, default: str = None) -> Optional[str]:
-        """Return string value from environment
-
-        :param any key: name for the configuration key
-        :param any default: default value if no key found
-        :return: any
-        """
-
-        value = self.get(key, default)
-
-        # special case for bool
-        if isinstance(value, bool):
-            return str(value).lower()
-
-        # special case for None
-        elif not (isinstance(value, str) or value is None):
-            return str(value)
-
-        return value
-
-    def int(self, key: str, default: int = None) -> Optional[int]:
-        """Return integer value from environment
-
-        :param any key: name for the configuration key
-        :param any default: default value if no key found
-        :return: any
-        """
-
-        value = self.get(key, default)
-
-        if isinstance(value, str):
-            try:
-                return int(Decimal(value))
-            except ArithmeticError:
-                return default
-
-        return value
-
-    def float(self, key: str, default: float = None) -> Optional[float]:
-        """Return float value from environment
-
-        :param any key: name for the configuration key
-        :param any default: default value if no key found
-        :return: any
-        """
-
-        value = self.get(key, default)
-
-        if isinstance(value, str):
-            try:
-                return float(Decimal(value))
-            except ArithmeticError:
-                return default
-
-        return value
-
-    def __contains__(self, item: str) -> bool:
-        """Check if key in configuration
-
-        :param str item: get item
-        :return: bool
-        """
-        return item in self.keys
-
-    def __getitem__(self, key: str) -> Any:
-        """Get item ['item']
-
-        :param str key: get environment name as item
-        :return: any
-        """
-
-        return self.keys[key]
+        return self.__cls

@@ -1,0 +1,172 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for TomlEv
+title: "[Feature]: "
+labels: [ "enhancement", "needs-triage" ]
+assignees: [ ]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please fill out this template to help us understand your request.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please check all applicable items before submitting
+      options:
+        - label: I have searched existing issues and this feature hasn't been requested
+          required: true
+        - label: I have considered if this fits the scope and goals of TomlEv
+          required: true
+        - label: I have provided a clear use case for this feature
+          required: true
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature are you requesting?
+      options:
+        - New functionality
+        - Performance improvement
+        - Developer experience improvement
+        - API enhancement
+        - Configuration option
+        - Integration with other tools
+        - Documentation improvement
+        - Other (please specify)
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: |
+        What problem does this feature solve? What limitation are you encountering?
+        Please provide context about why this feature would be valuable.
+      placeholder: |
+        I'm currently trying to... but I can't because...
+        This would be useful for...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: |
+        Describe your proposed solution in detail. How would you like this feature to work?
+        Include examples of the API or behavior you envision.
+      placeholder: |
+        I would like to be able to...
+        The API could look like:
+        ```python
+        # Example code showing how the feature would be used
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: |
+        What alternative solutions or workarounds have you considered?
+        Why are they not sufficient?
+      placeholder: |
+        I considered...
+        I tried using... but...
+        Current workarounds include...
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: |
+        Provide specific use cases where this feature would be beneficial.
+        Real-world examples help us understand the value and scope.
+      placeholder: |
+        Use case 1: ...
+        Use case 2: ...
+        This would be particularly useful for...
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Code Examples
+      description: |
+        Provide code examples showing how this feature would be used.
+        Include both the current approach (if applicable) and the desired approach.
+      placeholder: |
+        # Current approach (if applicable)
+        ```python
+        # How it works now...
+        ```
+
+        # Desired approach
+        ```python
+        # How it would work with this feature...
+        ```
+      render: python
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Feature Scope
+      description: How significant do you think this change would be?
+      options:
+        - label: Small - Minor API addition or enhancement
+        - label: Medium - New functionality with moderate complexity
+        - label: Large - Major feature requiring significant changes
+        - label: Breaking - Would require breaking changes to existing API
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have, but not urgent
+        - Medium - Would significantly improve my workflow
+        - High - Blocking or severely limiting current usage
+        - Critical - Cannot use TomlEv effectively without this
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Ideas (Optional)
+      description: |
+        If you have ideas about how this could be implemented, please share them.
+        This is optional but can be helpful for maintainers.
+      placeholder: |
+        This could potentially be implemented by...
+        It might require changes to...
+        Consider using...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution Interest
+      description: Would you be interested in contributing to this feature?
+      options:
+        - label: I'd like to help implement this feature
+        - label: I can help with testing once implemented
+        - label: I can help with documentation
+        - label: I prefer to just request and let maintainers handle it
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: |
+        Add any other context, screenshots, links, or examples that might help
+        explain your feature request.
+      placeholder: |
+        Related discussions:
+        Similar features in other projects:
+        Additional considerations:
