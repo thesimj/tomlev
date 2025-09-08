@@ -32,7 +32,7 @@ from typing import Any, Generic, TypeAlias, TypeVar
 
 from tomlev.__model__ import BaseConfigModel, ConfigValidationError
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 T = TypeVar("T", bound=BaseConfigModel)
 
