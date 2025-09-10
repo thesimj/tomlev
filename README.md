@@ -24,7 +24,9 @@ files with type-safe configuration models. It allows you to:
 - **Nested configuration**: Support for complex nested configuration structures
 - **Environment variable substitution**: Reference environment variables in TOML files with `${VAR|-default}` syntax
 - **Validation**: Automatic validation of configuration structure and types
-- **IDE support**: Full IDE autocompletion and type checking support
+- **AI coding agent ready**: Full type checking support makes configurations perfectly compatible with AI coding agents
+  and IDEs
+- **IDE support**: Complete IDE autocompletion and static type analysis support
 
 ### Install
 
@@ -45,7 +47,29 @@ poetry add tomlev
 
 ### Basic usage
 
-#### 1. Define Configuration Models
+#### 1. Create a TOML configuration file
+
+Create a TOML configuration file (`env.toml` by default):
+
+```toml
+# env.toml
+app_name = "My Application"
+debug = "${DEBUG|-false}"
+environment = "${ENV|-development}"
+
+[database]
+host = "${DB_HOST|-localhost}"
+port = "${DB_PORT|-5432}"
+user = "${DB_USER}"
+password = "${DB_PASSWORD}"
+name = "${DB_NAME|-app_db}"
+
+[redis]
+host = "${REDIS_HOST|-127.0.0.1}"
+port = "${REDIS_PORT|-6379}"
+```
+
+#### 2. Define Configuration Models
 
 Create configuration model classes that inherit from `BaseConfigModel`:
 
@@ -73,28 +97,6 @@ class AppConfig(BaseConfigModel):
 
     database: DatabaseConfig
     redis: RedisConfig
-```
-
-#### 2. Create a TOML configuration file
-
-Create a TOML configuration file (`env.toml` by default):
-
-```toml
-# env.toml
-app_name = "My Application"
-debug = "${DEBUG|-false}"
-environment = "${ENV|-development}"
-
-[database]
-host = "${DB_HOST|-localhost}"
-port = "${DB_PORT|-5432}"
-user = "${DB_USER}"
-password = "${DB_PASSWORD}"
-name = "${DB_NAME|-app_db}"
-
-[redis]
-host = "${REDIS_HOST|-127.0.0.1}"
-port = "${REDIS_PORT|-6379}"
 ```
 
 #### 3. Use TomlEv in your Python code
