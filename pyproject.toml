@@ -50,17 +50,17 @@ classifiers = [
 [dependency-groups]
 dev = [
     "ruff",
-    "mypy~=1.13.0",
+    "mypy~=1.17.0",
     "pytest~=8.4.0",
-    "pre-commit~=4.2.0",
-    "pytest-cov~=6.2.0",
+    "pre-commit~=4.3.0",
+    "pytest-cov~=7.0.0",
     "hatchling~=1.27.0",
     "bandit~=1.8.0",
-    "safety~=3.2.0",
+    "safety~=3.6.0",
     "docstr-coverage~=2.3.0",
     "radon~=6.0.1",
     "pytest-benchmark~=5.1.0",
-    "hypothesis~=6.112.0"
+    "hypothesis~=6.138.0"
 ]
 
 [project.urls]
