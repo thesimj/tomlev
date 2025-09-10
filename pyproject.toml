@@ -19,7 +19,7 @@ keywords = [
 ]
 classifiers = [
     # Development Status
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     # License
     "License :: OSI Approved :: MIT License",
     # Operating System
@@ -31,7 +31,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Systems Administration",
     "Topic :: Utilities",
-    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     # Intended Audience
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
@@ -46,11 +45,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
     # Typing
     "Typing :: Typed",
-    # Natural Language
-    "Natural Language :: English",
-    # Environment
-    "Environment :: Console",
-    "Environment :: Web Environment",
 ]
 
 [dependency-groups]
