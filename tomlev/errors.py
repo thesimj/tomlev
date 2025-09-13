@@ -81,7 +81,9 @@ class EnvironmentVariableError(ConfigValidationError):
     def duplicate_variables(cls, variables: list[str]) -> EnvironmentVariableError:
         """Create error for duplicate environment variables."""
         duplicate_vars = ", ".join(["$" + v for v in sorted(variables)])
-        return cls([("environment_variables", f"Strict mode enabled, variables {duplicate_vars} defined several times!")])
+        return cls(
+            [("environment_variables", f"Strict mode enabled, variables {duplicate_vars} defined several times!")]
+        )
 
 
 class IncludeError(ConfigValidationError):

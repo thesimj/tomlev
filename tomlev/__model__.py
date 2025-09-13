@@ -151,7 +151,6 @@ class BaseConfigModel:
                     return convert_union(attr, kind, value, kwargs, self._convert_value)
                 return convert_generic_type(attr, kind, value, self._convert_value)
 
-
     # Convenience
     def as_dict(self) -> dict[str, Any]:
         """Return a plain dict representation of the model (recursively)."""

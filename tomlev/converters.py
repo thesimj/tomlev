@@ -148,9 +148,7 @@ def convert_literal(literal_type: Any, value: Any) -> Any:
     raise ValueError(f"Value {value!r} not in allowed Literal{allowed}")
 
 
-def convert_union(
-    attr: str, union_type: Any, value: Any, kwargs: dict[str, Any], convert_value_func: Any
-) -> Any:
+def convert_union(attr: str, union_type: Any, value: Any, kwargs: dict[str, Any], convert_value_func: Any) -> Any:
     """Convert value according to a Union (including Optional).
 
     Args:
@@ -224,7 +222,7 @@ def convert_list(args: tuple[type, ...], value: Any, convert_value_func: Any) ->
                 converted_list.append(float(item))
             case t if t is bool:
                 converted_list.append(convert_bool(item))
-            case t if t is not Any and hasattr(t, '__annotations__'):  # BaseConfigModel check without circular import
+            case t if t is not Any and hasattr(t, "__annotations__"):  # BaseConfigModel check without circular import
                 converted_list.append(t(**item) if isinstance(item, dict) else t())
             case t if get_origin(t) is dict:
                 # Handle list[dict[...]] types
@@ -276,7 +274,7 @@ def convert_dict(args: tuple[type, ...], value: Any, convert_value_func: Any) ->
                 converted_dict[key_str] = convert_bool(v)
             case t if t is Any:
                 converted_dict[key_str] = v
-            case t if t is not Any and hasattr(t, '__annotations__'):  # BaseConfigModel check without circular import
+            case t if t is not Any and hasattr(t, "__annotations__"):  # BaseConfigModel check without circular import
                 converted_dict[key_str] = t(**v) if isinstance(v, dict) else t()
             case _:
                 converted_dict[key_str] = v

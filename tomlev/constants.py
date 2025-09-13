@@ -30,7 +30,8 @@ __all__ = [
     "DEFAULT_ENV_FILE",
     "DEFAULT_SEPARATOR",
     "BOOL_TRUE_VALUES",
-    "INCLUDE_KEY"
+    "INCLUDE_KEY",
+    "VERSION",
 ]
 
 # Environment variable name to disable strict mode globally
@@ -48,3 +49,6 @@ BOOL_TRUE_VALUES: set[str] = {"true", "1", "yes", "y", "on", "t"}
 
 # Include directive key name
 INCLUDE_KEY: str = "__include"
+
+# Package version
+VERSION: str = "1.0.2"

@@ -134,4 +134,13 @@ def expand_includes_dict(
     # Recurse into children
     for k, v in list(node.items()):
         if isinstance(v, dict):
-            expand_includes_dict(v, base_dir, env, strict, separator, seen=seen, cache=cache, substitute_and_parse_func=substitute_and_parse_func)
+            expand_includes_dict(
+                v,
+                base_dir,
+                env,
+                strict,
+                separator,
+                seen=seen,
+                cache=cache,
+                substitute_and_parse_func=substitute_and_parse_func,
+            )

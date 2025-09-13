@@ -25,14 +25,15 @@ SOFTWARE.
 from __future__ import annotations
 
 import argparse
+import json
 from os import environ
 
-from .constants import DEFAULT_ENV_FILE, DEFAULT_ENV_TOML_FILE, DEFAULT_SEPARATOR
+from .constants import DEFAULT_ENV_FILE, DEFAULT_ENV_TOML_FILE, DEFAULT_SEPARATOR, VERSION
 from .env_loader import EnvDict, read_env_file
 from .errors import ConfigValidationError
 from .parser import read_toml
 
-__all__ = ["cli_validate", "main"]
+__all__ = ["cli_validate", "cli_render", "main"]
 
 
 def cli_validate(toml_file: str, env_file: str | None, strict: bool, include_environment: bool, separator: str) -> int:
@@ -78,11 +79,56 @@ def cli_validate(toml_file: str, env_file: str | None, strict: bool, include_env
     return 0
 
 
+def cli_render(toml_file: str, env_file: str | None, strict: bool, include_environment: bool, separator: str) -> int:
+    """Render TOML configuration as JSON after environment substitution and includes.
+
+    Returns exit code 0 on success, 1 on failure. Prints the rendered
+    configuration as pretty-formatted JSON to stdout.
+
+    Args:
+        toml_file: Path to the TOML file to render.
+        env_file: Path to the .env file, or None to skip.
+        strict: Whether to operate in strict mode.
+        include_environment: Whether to include system environment variables.
+        separator: Separator for default values in environment variables.
+
+    Returns:
+        Exit code: 0 on success, 1 on failure.
+    """
+    # Build env mapping
+    env: EnvDict = dict(environ) if include_environment else {}
+    # Read dotenv
+    try:
+        dotenv = read_env_file(env_file, strict)
+    except Exception as e:  # noqa: BLE001  # pragma: no cover - rare environment read errors
+        print(f"Error reading env file: {e}")
+        return 1
+    env.update(dotenv)
+
+    # Read TOML and perform substitution
+    try:
+        config = read_toml(toml_file, env, strict, separator)
+    except FileNotFoundError:
+        print(f"TOML file not found: {toml_file}")
+        return 1
+    except ConfigValidationError as e:
+        print(str(e))
+        return 1
+    except Exception as e:  # noqa: BLE001
+        print(f"Render error: {e}")
+        return 1
+
+    # Output as JSON
+    print(json.dumps(config, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """TomlEv CLI entry point.
 
     Commands:
     - validate: Validate TOML file with env substitution (schema-less).
+    - render: Render TOML configuration as JSON with substitution and includes.
 
     Args:
         argv: Command line arguments. If None, uses sys.argv.
@@ -91,13 +137,12 @@ def main(argv: list[str] | None = None) -> int:
         Exit code: 0 on success, 1 on failure.
     """
     parser = argparse.ArgumentParser(prog="tomlev", description="TomlEv CLI")
+    parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {VERSION}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_val = sub.add_parser("validate", help="Validate TOML with env substitution")
     p_val.add_argument("--toml", default=DEFAULT_ENV_TOML_FILE, help="Path to TOML file")
-    p_val.add_argument(
-        "--env-file", default=DEFAULT_ENV_FILE, help="Path to .env file (use --no-env-file to disable)"
-    )
+    p_val.add_argument("--env-file", default=DEFAULT_ENV_FILE, help="Path to .env file (use --no-env-file to disable)")
     p_val.add_argument("--no-env-file", action="store_true", help="Do not read .env file")
     p_val.add_argument(
         "--strict", dest="strict", action="store_true", default=True, help="Enable strict mode (default)"
@@ -106,12 +151,29 @@ def main(argv: list[str] | None = None) -> int:
     p_val.add_argument("--no-environ", action="store_true", help="Do not include system environment variables")
     p_val.add_argument("--separator", default=DEFAULT_SEPARATOR, help="Default separator for ${VAR|-default}")
 
+    p_render = sub.add_parser("render", help="Render TOML configuration as JSON")
+    p_render.add_argument("--toml", default=DEFAULT_ENV_TOML_FILE, help="Path to TOML file")
+    p_render.add_argument(
+        "--env-file", default=DEFAULT_ENV_FILE, help="Path to .env file (use --no-env-file to disable)"
+    )
+    p_render.add_argument("--no-env-file", action="store_true", help="Do not read .env file")
+    p_render.add_argument(
+        "--strict", dest="strict", action="store_true", default=True, help="Enable strict mode (default)"
+    )
+    p_render.add_argument("--no-strict", dest="strict", action="store_false", help="Disable strict mode")
+    p_render.add_argument("--no-environ", action="store_true", help="Do not include system environment variables")
+    p_render.add_argument("--separator", default=DEFAULT_SEPARATOR, help="Default separator for ${VAR|-default}")
+
     args = parser.parse_args(argv)
 
     if args.command == "validate":
         env_file = None if args.no_env_file else args.env_file
         include_environment = not args.no_environ
         return cli_validate(args.toml, env_file, args.strict, include_environment, args.separator)
+    elif args.command == "render":
+        env_file = None if args.no_env_file else args.env_file
+        include_environment = not args.no_environ
+        return cli_render(args.toml, env_file, args.strict, include_environment, args.separator)
 
     parser.print_help()  # pragma: no cover - subparsers require a command
     return 1  # pragma: no cover - unreachable with required=True

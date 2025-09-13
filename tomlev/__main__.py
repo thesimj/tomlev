@@ -29,11 +29,11 @@ from typing import Generic, TypeVar
 
 from .__model__ import BaseConfigModel
 from .cli import main as cli_main
-from .constants import DEFAULT_ENV_FILE, DEFAULT_ENV_TOML_FILE, TOMLEV_STRICT_DISABLE
+from .constants import DEFAULT_ENV_FILE, DEFAULT_ENV_TOML_FILE, TOMLEV_STRICT_DISABLE, VERSION
 from .env_loader import EnvDict, read_env_file
 from .parser import ConfigDict, read_toml
 
-__version__ = "1.0.2"
+__version__ = VERSION
 
 T = TypeVar("T", bound=BaseConfigModel)
 
@@ -117,7 +117,6 @@ class TomlEv(Generic[T]):
         self.__toml_vars: ConfigDict = read_toml(toml_file, self.__vars, self.__strict)
 
         self.__cls = cls(**self.__toml_vars)
-
 
     @property
     def environ(self) -> EnvDict:
