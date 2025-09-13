@@ -22,8 +22,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .__main__ import TomlEv, __version__
-from .__model__ import BaseConfigModel
-from .errors import ConfigValidationError
+from __future__ import annotations
 
-__all__ = ["BaseConfigModel", "TomlEv", "ConfigValidationError", "__version__"]
+import re
+
+__all__ = [
+    "RE_COMMENTS",
+    "RE_DOT_ENV",
+    "RE_PATTERN",
+]
+
+# Pattern to remove comments
+RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
+
+# Pattern to read .env file
+RE_DOT_ENV = re.compile(
+    r"^(?!\d+)(?P<name>[\w\-\.]+)\=[\"\']?(?P<value>(.*?))[\"\']?$",
+    re.MULTILINE | re.UNICODE | re.IGNORECASE,
+)
+
+# Pattern to extract environment variables
+RE_PATTERN = re.compile(
+    r"(?P<pref>[\"\'])?"
+    r"(\$(?:(?P<escaped>(\$|\d+))|"
+    r"{(?P<braced>(.*?))(\|-(?P<braced_default>.*?))?}|"
+    r"(?P<named>[\w\-\.]+)(\|(?P<named_default>.*))?))"
+    r"(?P<post>[\"\'])?",
+    re.MULTILINE | re.UNICODE | re.IGNORECASE | re.VERBOSE,
+)

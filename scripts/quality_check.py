@@ -10,27 +10,54 @@ import sys
 from pathlib import Path
 
 
-def run_command(command: list[str], description: str) -> bool:
-    """Run a command and return success status."""
+def run_candidates(candidates: list[list[str]], description: str) -> bool:
+    """Try a list of candidate commands until one succeeds."""
     print(f"\n[CHECK] {description}")
-    print(f"Running: {' '.join(command)}")
+    for command in candidates:
+        print(f"Trying: {' '.join(command)}")
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, check=True)
+            if result.stdout:
+                print(result.stdout)
+            print(f"[PASS] {description} - PASSED via: {' '.join(command)}")
+            return True
+        except FileNotFoundError:
+            # Fall back to next candidate
+            continue
+        except subprocess.CalledProcessError as e:
+            # Some environments (e.g., sandbox) may block uv; try next candidate
+            if e.stdout:
+                print("STDOUT:", e.stdout)
+            if e.stderr:
+                print("STDERR:", e.stderr)
+            continue
 
-    try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        if result.stdout:
-            print(result.stdout)
-        print(f"[PASS] {description} - PASSED")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"[FAIL] {description} - FAILED")
-        if e.stdout:
-            print("STDOUT:", e.stdout)
-        if e.stderr:
-            print("STDERR:", e.stderr)
-        return False
-    except FileNotFoundError:
-        print(f"[SKIP] {description} - Tool not found")
-        return False
+    print(f"[FAIL] {description} - All candidates failed or unavailable")
+    return False
+
+
+def candidates_for(tool: str, *args: str) -> list[list[str]]:
+    """Return a list of candidate invocations for a tool with given args."""
+    bin_path = Path(".venv") / ("Scripts" if sys.platform.startswith("win") else "bin")
+    exe = bin_path / tool
+    candidates: list[list[str]] = [
+        ["uv", "run", tool, *args],
+        [str(exe), *args],
+    ]
+    # python -m fallbacks for common tools
+    module_map = {
+        "ruff": "ruff",
+        "mypy": "mypy",
+        "bandit": "bandit",
+        "radon": "radon",
+        "pytest": "pytest",
+        # docstr-coverage package exposes module "docstr_coverage"
+        "docstr-coverage": "docstr_coverage",
+    }
+    mod = module_map.get(tool)
+    if mod:
+        candidates.append([sys.executable, "-m", mod, *args])
+    return candidates
 
 
 def main():
@@ -45,29 +72,29 @@ def main():
     # List of checks to run
     checks = [
         # Code formatting and linting
-        (["uv", "run", "ruff", "check"], "Ruff linting"),
-        (["uv", "run", "ruff", "format", "--check"], "Ruff formatting check"),
+        (candidates_for("ruff", "check"), "Ruff linting"),
+        (candidates_for("ruff", "format", "--check"), "Ruff formatting check"),
         # Type checking
-        (["uv", "run", "mypy", "tomlev"], "MyPy type checking"),
+        (candidates_for("mypy", "tomlev"), "MyPy type checking"),
         # Security scanning
-        (["uv", "run", "bandit", "-r", "tomlev"], "Bandit security scan"),
+        (candidates_for("bandit", "-r", "tomlev"), "Bandit security scan"),
         # Documentation coverage
-        (["uv", "run", "docstr-coverage", "tomlev", "--badge=no"], "Docstring coverage"),
+        (candidates_for("docstr-coverage", "tomlev", "--badge=no"), "Docstring coverage"),
         # Code complexity
-        (["uv", "run", "radon", "cc", "tomlev", "-a"], "Code complexity analysis"),
-        (["uv", "run", "radon", "mi", "tomlev"], "Maintainability index"),
+        (candidates_for("radon", "cc", "tomlev", "-a"), "Code complexity analysis"),
+        (candidates_for("radon", "mi", "tomlev"), "Maintainability index"),
         # Tests with coverage
-        (["uv", "run", "pytest", "--cov", "--cov-report=term-missing", "--cov-fail-under=90"], "Test coverage"),
+        (candidates_for("pytest", "--cov", "--cov-report=term-missing", "--cov-fail-under=90"), "Test coverage"),
         # Property-based tests
-        (["uv", "run", "pytest", "tests/test_property_based.py", "-v"], "Property-based tests"),
+        (candidates_for("pytest", "tests/test_property_based.py", "-v"), "Property-based tests"),
     ]
 
     # Track results
     passed = 0
     failed = 0
 
-    for command, description in checks:
-        if run_command(command, description):
+    for candidate_list, description in checks:
+        if run_candidates(candidate_list, description):
             passed += 1
         else:
             failed += 1

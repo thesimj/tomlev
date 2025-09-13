@@ -1,8 +1,17 @@
 from __future__ import annotations
 
-from typing import Any
+from enum import Enum
+from typing import Any, Literal
 
 from tomlev import BaseConfigModel, TomlEv
+
+
+class SelectEnum(Enum):
+    """Enum for selection."""
+
+    ONE = "one"
+    TWO = "two"
+    THREE = "three"
 
 
 class StripeConfig(BaseConfigModel):
@@ -38,6 +47,13 @@ class RedisConfig(BaseConfigModel):
     mass: float
 
 
+class IncludeNested(BaseConfigModel):
+    """Nested configuration for include_other_toml."""
+
+    include_param: str
+    nested: dict
+
+
 class SimpleConfig(BaseConfigModel):
     """Main application configuration."""
 
@@ -47,6 +63,9 @@ class SimpleConfig(BaseConfigModel):
     stripe: StripeConfig
     database: DatabaseConfig
     redis: RedisConfig
+    select_literal: Literal["one", "two", "three"]
+    select_enum: SelectEnum
+    include_other_toml: IncludeNested
 
 
 def test_simple_env_files():
@@ -81,3 +100,11 @@ def test_simple_env_files():
     assert env.redis.atts == [{"name": "one", "age": 10}, {"name": "two", "age": 12}]
     assert type(env.redis.weight) is int and env.redis.weight == 0
     assert type(env.redis.mass) is float and env.redis.mass == 0.78
+
+    # assert selections
+    assert env.select_literal == "one"
+    assert env.select_enum == SelectEnum.ONE
+
+    # assert nesting
+    assert env.include_other_toml.include_param == "testing"
+    assert env.include_other_toml.nested["one_nested"] == "nested_one"

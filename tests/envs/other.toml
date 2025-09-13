@@ -1,0 +1,6 @@
+# root elements of include_other_toml
+include_param = "testing"
+
+# add nesting at this point
+[nested]
+one_nested = "nested_one"

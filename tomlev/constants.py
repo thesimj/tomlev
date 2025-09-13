@@ -22,8 +22,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .__main__ import TomlEv, __version__
-from .__model__ import BaseConfigModel
-from .errors import ConfigValidationError
+from __future__ import annotations
 
-__all__ = ["BaseConfigModel", "TomlEv", "ConfigValidationError", "__version__"]
+__all__ = [
+    "TOMLEV_STRICT_DISABLE",
+    "DEFAULT_ENV_TOML_FILE",
+    "DEFAULT_ENV_FILE",
+    "DEFAULT_SEPARATOR",
+    "BOOL_TRUE_VALUES",
+    "INCLUDE_KEY"
+]
+
+# Environment variable name to disable strict mode globally
+TOMLEV_STRICT_DISABLE: str = "TOMLEV_STRICT_DISABLE"
+
+# Default file names
+DEFAULT_ENV_TOML_FILE: str = "env.toml"
+DEFAULT_ENV_FILE: str = ".env"
+
+# Default separator for variable substitution
+DEFAULT_SEPARATOR: str = "|-"
+
+# Boolean true values for conversion
+BOOL_TRUE_VALUES: set[str] = {"true", "1", "yes", "y", "on", "t"}
+
+# Include directive key name
+INCLUDE_KEY: str = "__include"

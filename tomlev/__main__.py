@@ -22,42 +22,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-import io
-import re
+from __future__ import annotations
+
 from os import environ
-from os.path import expandvars
-from pathlib import Path
-from tomllib import loads as toml_loads
-from typing import Any, Generic, TypeAlias, TypeVar
+from typing import Generic, TypeVar
 
-from tomlev.__model__ import BaseConfigModel, ConfigValidationError
+from .__model__ import BaseConfigModel
+from .cli import main as cli_main
+from .constants import DEFAULT_ENV_FILE, DEFAULT_ENV_TOML_FILE, TOMLEV_STRICT_DISABLE
+from .env_loader import EnvDict, read_env_file
+from .parser import ConfigDict, read_toml
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 T = TypeVar("T", bound=BaseConfigModel)
-
-# Type aliases for clarity
-ConfigDict: TypeAlias = dict[str, Any]
-EnvDict: TypeAlias = dict[str, Any]
-
-# pattern to remove comments
-RE_COMMENTS = re.compile(r"(^#.*\n)", re.MULTILINE | re.UNICODE | re.IGNORECASE)
-
-# pattern to read .env file
-RE_DOT_ENV = re.compile(
-    r"^(?!\d+)(?P<name>[\w\-\.]+)\=[\"\']?(?P<value>(.*?))[\"\']?$",
-    re.MULTILINE | re.UNICODE | re.IGNORECASE,
-)
-
-# pattern to extract env variables
-RE_PATTERN = re.compile(
-    r"(?P<pref>[\"\'])?"
-    r"(\$(?:(?P<escaped>(\$|\d+))|"
-    r"{(?P<braced>(.*?))(\|-(?P<braced_default>.*?))?}|"
-    r"(?P<named>[\w\-\.]+)(\|(?P<named_default>.*))?))"
-    r"(?P<post>[\"\'])?",
-    re.MULTILINE | re.UNICODE | re.IGNORECASE | re.VERBOSE,
-)
 
 
 class TomlEv(Generic[T]):
@@ -69,11 +47,6 @@ class TomlEv(Generic[T]):
 
     Args:
         Generic[T]: The configuration model type that extends BaseConfigModel.
-
-    Attributes:
-        TOMLEV_STRICT_DISABLE: Environment variable name to disable strict mode globally.
-        DEFAULT_ENV_TOML_FILE: Default TOML configuration file name.
-        DEFAULT_ENV_FILE: Default environment file name.
 
     Example:
         ```python
@@ -89,10 +62,6 @@ class TomlEv(Generic[T]):
         print(f"Server running on {config.host}:{config.port}")
         ```
     """
-
-    TOMLEV_STRICT_DISABLE: str = "TOMLEV_STRICT_DISABLE"
-    DEFAULT_ENV_TOML_FILE: str = "env.toml"
-    DEFAULT_ENV_FILE: str = ".env"
 
     # variables
     __vars: EnvDict
@@ -120,8 +89,8 @@ class TomlEv(Generic[T]):
                                Defaults to True.
 
         Raises:
-            ValueError: In strict mode, when environment variables are undefined
-                       or when duplicate variables are found in .env file.
+            ConfigValidationError: In strict mode, when environment variables are undefined
+                                 or when duplicate variables are found in .env file.
             FileNotFoundError: When the specified TOML file doesn't exist.
 
         Note:
@@ -133,166 +102,22 @@ class TomlEv(Generic[T]):
 
         # set strict mode to false if "TOMLEV_STRICT_DISABLE" presents in env else use "strict" from the function
         self.__strict = (
-            (environ["TOMLEV_STRICT_DISABLE"].lower() not in {"true", "1", "yes", "y", "on", "t"})
-            if "TOMLEV_STRICT_DISABLE" in environ
+            (environ[TOMLEV_STRICT_DISABLE].lower() not in {"true", "1", "yes", "y", "on", "t"})
+            if TOMLEV_STRICT_DISABLE in environ
             else strict
         )
 
         # read .env files and update environment variables
-        self.__dotenv: ConfigDict = self.__read_envfile(env_file, self.__strict)
+        self.__dotenv: ConfigDict = read_env_file(env_file, self.__strict)
 
         # set environ with dot env variables
         self.__vars.update(self.__dotenv)
 
         # read toml files
-        self.__toml_vars: ConfigDict = self.__read_toml(toml_file, self.__vars, self.__strict)
+        self.__toml_vars: ConfigDict = read_toml(toml_file, self.__vars, self.__strict)
 
         self.__cls = cls(**self.__toml_vars)
 
-    @staticmethod
-    def __read_envfile(file_path: str | None, strict: bool = True) -> ConfigDict:
-        """Read and parse environment variables from a .env file.
-
-        Args:
-            file_path: Path to the .env file to read, or None if no file.
-            strict: Whether to operate in strict mode for error handling.
-
-        Returns:
-            Dictionary of environment variable names to values.
-        """
-        config: ConfigDict = {}
-        defined: set[str] = set()
-
-        # check if a file exists in filesystem
-        if file_path and Path(file_path).is_file():
-            with io.open(file_path, mode="rt", encoding="utf8") as fp:
-                content: str = expandvars(fp.read())
-
-            # iterate over findings
-            for entry in RE_DOT_ENV.finditer(content):
-                name = entry.group("name")
-                value = entry.group("value")
-
-                # check double definition
-                if name in config:
-                    defined.add(name)
-
-                # set config
-                config[name] = value
-
-        # strict mode - maintain backward compatibility for error messages
-        if strict and defined:
-            duplicate_vars = sorted(defined)
-            raise ConfigValidationError(
-                [
-                    (
-                        "environment_variables",
-                        "Strict mode enabled, variables "
-                        + ", ".join(["$" + v for v in duplicate_vars])
-                        + " defined several times!",
-                    )
-                ]
-            )
-
-        return config
-
-    @staticmethod
-    def __read_toml(file_path: str, env: EnvDict, strict: bool, separator: str = "|-") -> ConfigDict:
-        """Read and parse TOML file with environment variable substitution.
-
-        Args:
-            file_path: Path to the TOML file to read.
-            env: Dictionary of environment variables for substitution.
-            strict: Whether to operate in strict mode for error handling.
-            separator: Separator string for default values in environment variables.
-
-        Returns:
-            Dictionary of parsed TOML configuration with substituted values.
-        """
-        # read file
-        with io.open(file_path, mode="rt", encoding="utf8") as fp:
-            content: str = fp.read()
-
-        # remove all comments
-        content = RE_COMMENTS.sub("", content)
-
-        # not found variables
-        not_found_variables = set()
-
-        # change dictionary
-        replaces: dict[str, str] = {}
-
-        shifting = 0
-
-        # iterate over findings
-        for entry in RE_PATTERN.finditer(content):
-            groups = entry.groupdict()
-
-            # replace
-            variable: str | None = None
-            default: str | None = None
-            replace: str | None = None
-
-            # Use structural pattern matching for better readability
-            match groups:
-                case {"named": name, "named_default": def_val} if name:
-                    variable = name
-                    default = def_val
-                case {"braced": name, "braced_default": def_val} if name:
-                    variable = name
-                    default = def_val
-                case {"escaped": esc_val} if esc_val and "$" in esc_val:
-                    span = entry.span()
-                    content = content[: span[0] + shifting] + esc_val + content[span[1] + shifting :]
-                    # Added shifting since every time we update content, we are
-                    # changing the original groups spans
-                    shifting += len(esc_val) - (span[1] - span[0])
-
-            if variable is not None:
-                if variable in env:
-                    replace = env[variable]
-                elif variable not in env and default is not None:
-                    replace = default
-                else:
-                    not_found_variables.add(variable)
-
-            if replace is not None and variable is not None:
-                # build match
-                search = "${" if groups["braced"] else "$"
-                search += variable
-                if default is not None:
-                    search += separator + default
-                search += "}" if groups["braced"] else ""
-
-                # store findings
-                replaces[search] = replace
-
-        # strict mode - maintain backward compatibility for error messages
-        if strict and not_found_variables:
-            missing_vars = sorted(not_found_variables)
-            raise ConfigValidationError(
-                [
-                    (
-                        "environment_variables",
-                        "Strict mode enabled, variables "
-                        + ", ".join(["$" + v for v in missing_vars])
-                        + " are not defined!",
-                    )
-                ]
-            )
-
-        # replace finding with their respective values
-        for replace in sorted(replaces, reverse=True):
-            content = content.replace(replace, replaces[replace])
-
-        # load proper content
-        toml = toml_loads(content)
-
-        # if contains something
-        if toml and isinstance(toml, dict):
-            return toml
-
-        return {}
 
     @property
     def environ(self) -> EnvDict:
@@ -315,6 +140,14 @@ class TomlEv(Generic[T]):
         """
         return self.__strict
 
+    @property
+    def raw(self) -> ConfigDict:
+        """Return the parsed TOML configuration dict after substitutions.
+
+        Useful for introspection or serialization without creating a model.
+        """
+        return dict(self.__toml_vars)
+
     def validate(self) -> T:
         """Validate and return the loaded configuration.
 
@@ -327,3 +160,22 @@ class TomlEv(Generic[T]):
                                   type conversion errors or missing required fields.
         """
         return self.__cls
+
+
+def main(argv: list[str] | None = None) -> int:
+    """TomlEv CLI entry point.
+
+    Commands:
+    - validate: Validate TOML file with env substitution (schema-less).
+
+    Args:
+        argv: Command line arguments. If None, uses sys.argv.
+
+    Returns:
+        Exit code: 0 on success, 1 on failure.
+    """
+    return cli_main(argv)
+
+
+if __name__ == "__main__":  # pragma: no cover - manual invocation
+    raise SystemExit(main())

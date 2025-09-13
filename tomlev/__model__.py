@@ -22,43 +22,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from typing import Any, TypeAlias, get_args, get_origin, get_type_hints
+import copy
+import types
+from enum import Enum
+from typing import Any, TypeAlias, Union, get_args, get_origin, get_type_hints
+
+from .converters import (
+    convert_bool,
+    convert_enum,
+    convert_generic_type,
+    convert_literal,
+    convert_union,
+    get_default_value,
+)
+from .errors import ConfigValidationError
 
 # Type aliases for clarity
 PropertyDict: TypeAlias = dict[str, Any]
-ConfigError: TypeAlias = tuple[str, str]  # (attribute, error_message)
 
-__BOOL_VALUES__: set[str] = {"true", "1", "yes", "y", "on", "t"}
-
-
-class ConfigValidationError(Exception):
-    """Exception raised when configuration model validation fails.
-
-    This exception is raised when one or more configuration attributes
-    fail validation during the model initialization process.
-
-    Attributes:
-        errors: List of tuples containing (attribute_name, error_message) pairs.
-
-    Example:
-        ```python
-        try:
-            config = MyConfig(invalid_data)
-        except ConfigValidationError as e:
-            for attr, msg in e.errors:
-                print(f"Error in {attr}: {msg}")
-        ```
-    """
-
-    def __init__(self, errors: list[ConfigError]) -> None:
-        """Initialize the validation error.
-
-        Args:
-            errors: List of configuration errors as (attribute, message) tuples.
-        """
-        self.errors = errors
-        error_messages = [f"'{attr}': {msg}" for attr, msg in errors]
-        super().__init__(f"Configuration validation failed: {'; '.join(error_messages)}")
+__all__ = ["BaseConfigModel", "ConfigValidationError"]
 
 
 class BaseConfigModel:
@@ -133,14 +115,24 @@ class BaseConfigModel:
 
     def _convert_value(self, attr: str, kind: type, value: Any, kwargs: dict[str, Any]) -> Any:
         """Convert a value to the specified type using pattern matching."""
-        # Handle None/missing values with defaults
+        # Handle None/missing values with defaults. Prefer class defaults when set.
         if value is None:
-            return self._get_default_value(kind)
+            if hasattr(self.__class__, attr):
+                default = getattr(self.__class__, attr)
+                # Return a defensive copy for mutable defaults
+                try:
+                    return copy.deepcopy(default)
+                except Exception:
+                    return default
+            return get_default_value(kind)
 
         # Use structural pattern matching for type conversion
         match kind:
-            case t if t is bool:  # Check bool first before str since bool is subclass of int
-                return self._convert_bool(value)
+            case t if isinstance(t, type) and issubclass(t, Enum):
+                # Enum conversion: accept instance or coerce from name/value
+                return convert_enum(t, value)
+            case t if t is bool:  # Check bool first before str since bool is a subclass of int
+                return convert_bool(value)
             case t if t is str:
                 return str(value)
             case t if t is int:
@@ -150,114 +142,28 @@ class BaseConfigModel:
             case t if isinstance(t, type) and issubclass(t, BaseConfigModel):
                 return t(**value) if isinstance(value, dict) else t()
             case _:
-                # Handle generic types (list, dict, etc.)
-                return self._convert_generic_type(attr, kind, value)
+                # Handle Literal, Union/Optional, and generic types (list, dict, etc.)
+                origin = get_origin(kind)
+                if origin is not None and str(origin) == "typing.Literal":
+                    return convert_literal(kind, value)
+                # Union / Optional
+                if origin in (Union, types.UnionType) or (origin is None and get_args(kind)):
+                    return convert_union(attr, kind, value, kwargs, self._convert_value)
+                return convert_generic_type(attr, kind, value, self._convert_value)
 
-    def _convert_bool(self, value: Any) -> bool:
-        """Convert value to boolean using Python 3.11 best practices."""
-        match value:
-            case bool():
-                return value
-            case str() if value.lower() in __BOOL_VALUES__:
-                return True
-            case str():
-                return False
-            case _:
-                return bool(value)
 
-    def _get_default_value(self, kind: type) -> Any:
-        """Get default value for a type."""
-        match kind:
-            case t if t is str:
-                return ""
-            case t if t is int:
-                return 0
-            case t if t is float:
-                return 0.0
-            case t if t is bool:
-                return False
-            case t if get_origin(t) is list or t is list:
-                return []
-            case t if get_origin(t) is dict or t is dict:
-                return {}
-            case _:
-                return None
-
-    def _convert_generic_type(self, attr: str, kind: type, value: Any) -> Any:
-        """Handle conversion of generic types like list[str], dict[str, int], etc."""
-        origin = get_origin(kind)
-        args = get_args(kind)
-
-        match origin:
-            case t if t is list or kind is list:
-                return self._convert_list(args, value)
-            case t if t is dict or kind is dict:
-                return self._convert_dict(args, value)
-            case t if t is Any:
-                return value  # Keep as-is for Any
-            case _:
-                return value
-
-    def _convert_list(self, args: tuple[type, ...], value: Any) -> list[Any]:
-        """Convert list values with proper type conversion."""
-        if not isinstance(value, list):
-            raise TypeError(f"Expected list, got {type(value).__name__}")
-
-        if not args:
-            # Plain list (no type parameters) - convert all items to strings (original behavior)
-            return [str(item) for item in value]
-
-        item_type = args[0]
-        converted_list: list[Any] = []
-
-        for item in value:
-            match item_type:
-                case t if t is str:
-                    converted_list.append(str(item))
-                case t if t is int:
-                    converted_list.append(int(item))
-                case t if t is float:
-                    converted_list.append(float(item))
-                case t if t is bool:
-                    converted_list.append(self._convert_bool(item))
-                case t if get_origin(t) is dict:
-                    # Handle list[dict[...]] types
-                    converted_list.append(self._convert_dict(get_args(t), item))
-                case t if str(t) == "typing.Any":
-                    converted_list.append(item)
-                case _:
-                    converted_list.append(item)
-
-        return converted_list
-
-    def _convert_dict(self, args: tuple[type, ...], value: Any) -> dict[str, Any]:
-        """Convert dict values with proper type conversion."""
-        if not isinstance(value, dict):
-            raise TypeError(f"Expected dict, got {type(value).__name__}")
-
-        if not args or len(args) < 2:
-            return dict(value)
-
-        _, value_type = args[0], args[1]
-        converted_dict: dict[str, Any] = {}
-
-        for k, v in value.items():
-            # Convert key (usually string)
-            key_str = str(k)
-
-            # Convert value based on type
-            match value_type:
-                case t if t is str:
-                    converted_dict[key_str] = str(v)
-                case t if t is int:
-                    converted_dict[key_str] = int(v)
-                case t if t is float:
-                    converted_dict[key_str] = float(v)
-                case t if t is bool:
-                    converted_dict[key_str] = self._convert_bool(v)
-                case t if str(t) == "typing.Any":
-                    converted_dict[key_str] = v
-                case _:
-                    converted_dict[key_str] = v
-
-        return converted_dict
+    # Convenience
+    def as_dict(self) -> dict[str, Any]:
+        """Return a plain dict representation of the model (recursively)."""
+        result: dict[str, Any] = {}
+        for attr in get_type_hints(self.__class__).keys():
+            val = getattr(self, attr)
+            if isinstance(val, BaseConfigModel):
+                result[attr] = val.as_dict()
+            elif isinstance(val, list):
+                result[attr] = [v.as_dict() if isinstance(v, BaseConfigModel) else v for v in val]
+            elif isinstance(val, dict):
+                result[attr] = {k: (v.as_dict() if isinstance(v, BaseConfigModel) else v) for k, v in val.items()}
+            else:
+                result[attr] = val
+        return result

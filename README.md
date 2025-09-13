@@ -69,6 +69,20 @@ host = "${REDIS_HOST|-127.0.0.1}"
 port = "${REDIS_PORT|-6379}"
 ```
 
+Optionally include fragments inside a table using `__include` (paths are resolved relative to the TOML file):
+
+```toml
+# main.toml
+[features]
+__include = ["features.toml"]
+```
+
+```toml
+# features.toml (merged under [features])
+enabled = true
+name = "awesome"
+```
+
 #### 2. Define Configuration Models
 
 Create configuration model classes that inherit from `BaseConfigModel`:
@@ -90,6 +104,12 @@ class RedisConfig(BaseConfigModel):
     port: int
 
 
+class FeaturesConfig(BaseConfigModel):
+    # Matches the content merged under [features] via __include
+    enabled: bool
+    name: str
+
+
 class AppConfig(BaseConfigModel):
     app_name: str
     debug: bool
@@ -97,7 +117,10 @@ class AppConfig(BaseConfigModel):
 
     database: DatabaseConfig
     redis: RedisConfig
+    features: FeaturesConfig
 ```
+
+Tip: See the [File Includes](#file-includes) section for more details on `__include` usage and merge rules.
 
 #### 3. Use TomlEv in your Python code
 
@@ -187,6 +210,84 @@ config: AppConfig = TomlEv(
 # Or simply use defaults
 config: AppConfig = TomlEv(AppConfig).validate()
 ```
+
+### CLI Usage
+
+TomlEv also provides a small CLI to validate TOML configuration files with environment substitution, without writing Python code.
+
+Validate using defaults (`env.toml` and `.env` in the current directory):
+
+```shell
+tomlev validate
+```
+
+Validate explicit files:
+
+```shell
+tomlev validate --toml path/to/app.toml --env-file path/to/.env
+```
+
+Disable strict mode (missing variables do not fail):
+
+```shell
+tomlev validate --no-strict
+```
+
+Ignore the `.env` file or system environment variables:
+
+```shell
+tomlev validate --no-env-file         # do not read .env
+tomlev validate --no-environ          # do not include process environment
+```
+
+Customize the default separator used in `${VAR|-default}` patterns (default is `|-`):
+
+```shell
+tomlev validate --separator "|-"
+```
+
+Exit codes: returns `0` on success, `1` on validation error (including missing files, substitution errors, or TOML parse errors). This makes it convenient to integrate into CI.
+
+### File Includes
+
+TomlEv supports a simple include mechanism to compose configs from smaller TOML fragments. Place a reserved key `__include` inside any table to include one or more TOML files into that table.
+
+Basic syntax (paths are resolved relative to the referencing file):
+
+```toml
+# main.toml
+[database]
+__include = ["database.toml"]
+```
+
+Included file content is merged under the table where `__include` appears. For example:
+
+```toml
+# database.toml
+host = "${DB_HOST|-localhost}"
+port = "${DB_PORT|-5432}"
+
+[nested]
+flag = true
+```
+
+After expansion and substitution, the effective configuration is equivalent to:
+
+```toml
+[database]
+host = "localhost"
+port = 5432
+
+[database.nested]
+flag = true
+```
+
+Notes:
+- `__include` can be a string or a list of strings: `__include = "file.toml"` or `__include = ["a.toml", "b.toml"]`.
+- Includes are expanded using the same environment mapping and strict mode as the parent file.
+- Merge rules: dictionaries are deep-merged; non-dicts (strings, numbers, booleans, lists) are replaced by later includes (last one wins).
+- Strict mode: missing files and include cycles raise errors. In non-strict mode, they are skipped.
+- The `__include` key is removed from the final configuration prior to model validation.
 
 #### TOML File with Complex Types
 
