@@ -29,7 +29,14 @@ from typing import Generic, TypeVar
 
 from .__model__ import BaseConfigModel
 from .cli import main as cli_main
-from .constants import DEFAULT_ENV_FILE, DEFAULT_ENV_TOML_FILE, TOMLEV_STRICT_DISABLE, VERSION
+from .constants import (
+    DEFAULT_ENV_FILE,
+    DEFAULT_TOML_FILE,
+    TOMLEV_ENV_FILE,
+    TOMLEV_STRICT_DISABLE,
+    TOMLEV_TOML_FILE,
+    VERSION,
+)
 from .env_loader import EnvDict, read_env_file
 from .parser import ConfigDict, read_toml
 
@@ -71,8 +78,8 @@ class TomlEv(Generic[T]):
     def __init__(
         self,
         cls: type[T],
-        toml_file: str = DEFAULT_ENV_TOML_FILE,
-        env_file: str | None = DEFAULT_ENV_FILE,
+        toml_file: str | None = None,
+        env_file: str | None = None,
         strict: bool = True,
         include_environment: bool = True,
     ) -> None:
@@ -80,9 +87,11 @@ class TomlEv(Generic[T]):
 
         Args:
             cls: Configuration model class that extends BaseConfigModel.
-            toml_file: Path to the TOML configuration file. Defaults to "env.toml".
-            env_file: Path to the .env file for environment variables.
-                     Set to None to skip loading .env file. Defaults to ".env".
+            toml_file: Path to the TOML configuration file. If None, uses TOMLEV_TOML_FILE
+                      environment variable or defaults to "env.toml".
+            env_file: Path to the .env file for environment variables. If None, uses
+                     TOMLEV_ENV_FILE environment variable or defaults to ".env".
+                     Set to False to skip loading .env file.
             strict: Whether to enforce strict mode validation. When True, raises
                    errors for undefined variables or duplicates. Defaults to True.
             include_environment: Whether to include system environment variables.
@@ -94,9 +103,17 @@ class TomlEv(Generic[T]):
             FileNotFoundError: When the specified TOML file doesn't exist.
 
         Note:
-            Strict mode can be globally disabled by setting the environment
-            variable TOMLEV_STRICT_DISABLE to "true", "1", "yes", "y", or "on".
+            - Strict mode can be globally disabled by setting the environment
+              variable TOMLEV_STRICT_DISABLE to "true", "1", "yes", "y", or "on".
+            - Default file paths can be set via TOMLEV_TOML_FILE and TOMLEV_ENV_FILE
+              environment variables.
         """
+        # Determine file paths from environment variables or defaults
+        if toml_file is None:
+            toml_file = environ.get(TOMLEV_TOML_FILE, DEFAULT_TOML_FILE)
+        if env_file is None:
+            env_file = environ.get(TOMLEV_ENV_FILE, DEFAULT_ENV_FILE)
+
         # read environment
         self.__vars: EnvDict = dict(environ) if include_environment else {}
 
@@ -116,6 +133,7 @@ class TomlEv(Generic[T]):
         # read toml files
         self.__toml_vars: ConfigDict = read_toml(toml_file, self.__vars, self.__strict)
 
+        # create a model instance and validate
         self.__cls = cls(**self.__toml_vars)
 
     @property

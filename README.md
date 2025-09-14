@@ -133,6 +133,12 @@ config: AppConfig = TomlEv(AppConfig).validate()
 # Or explicitly specify files (same as defaults)
 config: AppConfig = TomlEv(AppConfig, "env.toml", ".env").validate()
 
+# You can also set defaults via environment variables
+# export TOMLEV_TOML_FILE="config/production.toml"
+# export TOMLEV_ENV_FILE="config/.env.production"
+# Then just use:
+config: AppConfig = TomlEv(AppConfig).validate()  # Uses env var defaults
+
 # Access configuration with type safety
 print(f"App: {config.app_name}")
 print(f"Environment: {config.environment}")
@@ -226,6 +232,25 @@ Validate explicit files:
 ```shell
 tomlev validate --toml path/to/app.toml --env-file path/to/.env
 ```
+
+#### Setting Default File Paths via Environment Variables
+
+You can set default file paths using environment variables, which is useful for CI/CD pipelines or containerized environments:
+
+```shell
+# Set default file paths
+export TOMLEV_TOML_FILE="config/production.toml"
+export TOMLEV_ENV_FILE="config/.env.production"
+
+# Now these commands will use the environment variable defaults
+tomlev validate
+tomlev render
+```
+
+The precedence order is:
+1. Explicit command-line arguments (highest priority)
+2. Environment variables (`TOMLEV_TOML_FILE`, `TOMLEV_ENV_FILE`)
+3. Hardcoded defaults (`env.toml`, `.env`)
 
 Disable strict mode (missing variables do not fail):
 

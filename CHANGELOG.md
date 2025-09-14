@@ -5,6 +5,25 @@ All notable changes to TomlEv will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2025-01-14
+
+### Added
+
+- **Environment Variable Defaults for File Paths**: New support for setting default file paths via environment variables
+  - `TOMLEV_TOML_FILE`: Sets the default TOML configuration file path
+  - `TOMLEV_ENV_FILE`: Sets the default .env file path
+  - Useful for CI/CD pipelines and containerized environments
+  - Precedence order: explicit arguments > environment variables > hardcoded defaults
+  - Works with both CLI commands (`validate`, `render`) and Python API
+  - Example usage:
+    ```bash
+    export TOMLEV_TOML_FILE="config/production.toml"
+    export TOMLEV_ENV_FILE="config/.env.production"
+    tomlev validate  # Uses environment variable defaults
+    ```
+  - Added comprehensive tests to verify functionality
+  - Updated documentation with usage examples
+
 ## [1.0.2] - 2025-01-13
 
 ### Added

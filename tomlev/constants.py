@@ -26,7 +26,9 @@ from __future__ import annotations
 
 __all__ = [
     "TOMLEV_STRICT_DISABLE",
-    "DEFAULT_ENV_TOML_FILE",
+    "TOMLEV_TOML_FILE",
+    "TOMLEV_ENV_FILE",
+    "DEFAULT_TOML_FILE",
     "DEFAULT_ENV_FILE",
     "DEFAULT_SEPARATOR",
     "BOOL_TRUE_VALUES",
@@ -37,8 +39,12 @@ __all__ = [
 # Environment variable name to disable strict mode globally
 TOMLEV_STRICT_DISABLE: str = "TOMLEV_STRICT_DISABLE"
 
+# Environment variable names for default file paths
+TOMLEV_TOML_FILE: str = "TOMLEV_TOML_FILE"
+TOMLEV_ENV_FILE: str = "TOMLEV_ENV_FILE"
+
 # Default file names
-DEFAULT_ENV_TOML_FILE: str = "env.toml"
+DEFAULT_TOML_FILE: str = "env.toml"
 DEFAULT_ENV_FILE: str = ".env"
 
 # Default separator for variable substitution
@@ -51,4 +57,4 @@ BOOL_TRUE_VALUES: set[str] = {"true", "1", "yes", "y", "on", "t"}
 INCLUDE_KEY: str = "__include"
 
 # Package version
-VERSION: str = "1.0.2"
+VERSION: str = "1.0.3"
