@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 
 from tomlev import BaseConfigModel, TomlEv
-from tomlev.converters import convert_tuple
+from tomlev.converters import convert_tuple, get_default_value
 
 
 class TupleTypesConfig(BaseConfigModel):
@@ -359,3 +359,25 @@ def test_tuple_overflow_items():
         assert config.fixed_tuple[2] == "third"
         assert config.fixed_tuple[3] == "fourth"
         assert config.fixed_tuple[4] == 5
+
+
+def test_generic_tuple_default_values():
+    """Test default values for generic tuple types with type parameters."""
+    # Test generic tuple[str, int]
+    from typing import get_origin
+
+    # Create a generic tuple type
+    tuple_str_int_type = tuple[str, int]
+    assert get_origin(tuple_str_int_type) is tuple
+
+    # Test that get_default_value returns empty tuple for generic tuple types
+    default = get_default_value(tuple_str_int_type)
+    assert default == ()
+    assert isinstance(default, tuple)
+
+    # Test with different generic tuple types
+    assert get_default_value(tuple[str]) == ()
+    assert get_default_value(tuple[int, float]) == ()
+    assert get_default_value(tuple[bool, bool, bool]) == ()
+    assert get_default_value(tuple[Any, Any]) == ()
+    assert get_default_value(tuple[str, int, float, bool, Any]) == ()

@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 
 from tomlev import BaseConfigModel, TomlEv
-from tomlev.converters import convert_set
+from tomlev.converters import convert_set, get_default_value
 
 
 class SetTypesConfig(BaseConfigModel):
@@ -319,3 +319,24 @@ def test_set_default_value():
 
         assert config.required_set == {"item1", "item2"}
         assert config.optional_set == {"default1", "default2"}
+
+
+def test_generic_set_default_values():
+    """Test default values for generic set types with type parameters."""
+    # Test generic set[str]
+    from typing import get_origin
+
+    # Create a generic set type
+    set_str_type = set[str]
+    assert get_origin(set_str_type) is set
+
+    # Test that get_default_value returns empty set for generic set types
+    default = get_default_value(set_str_type)
+    assert default == set()
+    assert isinstance(default, set)
+
+    # Test with different generic set types
+    assert get_default_value(set[int]) == set()
+    assert get_default_value(set[float]) == set()
+    assert get_default_value(set[bool]) == set()
+    assert get_default_value(set[Any]) == set()

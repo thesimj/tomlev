@@ -20,7 +20,7 @@ files with type-safe configuration models. It allows you to:
 
 - **Type-safe configuration**: Define configuration schemas using Python classes with type hints
 - **Automatic type conversion**: Convert environment variables to appropriate types (bool, int, float, str, lists,
-  dicts)
+  dicts, sets, tuples)
 - **Nested configuration**: Support for complex nested configuration structures
 - **Environment variable substitution**: Reference environment variables in TOML files with `${VAR|-default}` syntax
 - **Validation**: Automatic validation of configuration structure and types
@@ -160,7 +160,7 @@ TomlEv uses `BaseConfigModel` to provide type-safe configuration handling. Here 
 #### Supported Types
 
 - **Basic types**: `str`, `int`, `float`, `bool`
-- **Collections**: `list[T]`, `dict[str, T]` where T is any supported type
+- **Collections**: `list[T]`, `dict[str, T]`, `set[T]`, `tuple[T, ...]` where T is any supported type
 - **Complex collections**: `list[dict[str, Any]]` for lists of dictionaries
 - **Nested models**: Other `BaseConfigModel` subclasses
 - **Generic types**: `typing.Any` for flexible values
@@ -193,6 +193,8 @@ class RedisConfig(BaseConfigModel):
     keys: list[str]  # List of strings
     nums: list[int]  # List of integers
     atts: list[dict[str, Any]]  # List of dictionaries
+    tags: set[str]  # Set of unique strings
+    coordinates: tuple[float, float, float]  # Tuple with fixed types
     weight: int
     mass: float
 
@@ -339,6 +341,8 @@ port = "${REDIS_PORT|-6379}"
 keys = ["one", "two", "three"]
 nums = [10, 12, 99]
 atts = [{ name = "one", age = 10 }, { name = "two", age = 12 }]
+tags = ["cache", "session", "cache", "metrics"]  # Will be deduplicated to set
+coordinates = [52.5200, 13.4050, 100.0]  # Will be converted to tuple
 weight = 0.98
 mass = 0.78
 ```
