@@ -5,6 +5,25 @@ All notable changes to TomlEv will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-01-17
+
+### Added
+
+- **Support for set and tuple types**: Added type conversion support for `set[T]` and `tuple[T, ...]` types
+    - New `convert_set` function to convert TOML lists to Python sets with proper type conversion
+    - New `convert_tuple` function to convert TOML lists to Python tuples with position-based type conversion
+    - Extended `convert_generic_type` to handle set and tuple origins
+    - Added default value support for set and tuple types in `get_default_value`
+    - Enables configuration models to use set types for unique collections
+    - Enables configuration models to use tuple types for fixed-size immutable sequences
+
+### Enhanced
+
+- **Comprehensive test coverage for set and tuple types**: Added extensive test suites for robust type conversion
+    - New `test_set_types.py` with tests for all set type conversions, deduplication, and edge cases
+    - New `test_tuple_types.py` with tests for position-based type conversion, overflow handling, and immutability
+    - Improved overall test coverage to ensure reliability of new type conversions
+
 ## [1.0.3] - 2025-01-14
 
 ### Added

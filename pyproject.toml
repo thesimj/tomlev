@@ -1,6 +1,6 @@
 [project]
 name = "tomlev"
-version = "1.0.3"
+version = "1.0.4"
 description = "Type-safe TOML configuration management with environment variable substitution and automatic validation for modern Python applications."
 authors = [{ name = "Nick Bubelich", email = "m+github@bubelich.com" }]
 license = { text = "MIT" }

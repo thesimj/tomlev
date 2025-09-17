@@ -67,6 +67,10 @@ class SimpleConfig(BaseConfigModel):
     select_enum: SelectEnum
     include_other_toml: IncludeNested
 
+    # test sets and tuple
+    test_set: set[str]
+    test_tuple: tuple[str, int, float]
+
 
 def test_simple_env_files():
     env: SimpleConfig = TomlEv(SimpleConfig, "tests/envs/env.simple.toml", "tests/envs/.env.simple").validate()
@@ -108,3 +112,7 @@ def test_simple_env_files():
     # assert nesting
     assert env.include_other_toml.include_param == "testing"
     assert env.include_other_toml.nested["one_nested"] == "nested_one"
+
+    # asset set and tuple
+    assert type(env.test_set) is set and env.test_set == {"one", "two", "five"}
+    assert type(env.test_tuple) is tuple and env.test_tuple == ("one", 1, 10.5)

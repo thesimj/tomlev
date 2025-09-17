@@ -36,6 +36,8 @@ __all__ = [
     "convert_union",
     "convert_list",
     "convert_dict",
+    "convert_set",
+    "convert_tuple",
     "convert_generic_type",
     "get_default_value",
 ]
@@ -282,6 +284,95 @@ def convert_dict(args: tuple[type, ...], value: Any, convert_value_func: Any) ->
     return converted_dict
 
 
+def convert_set(args: tuple[type, ...], value: Any, convert_value_func: Any) -> set[Any]:
+    """Convert list values to set with proper type conversion.
+
+    Args:
+        args: Type arguments for the set (e.g., for set[str], args would be (str,)).
+        value: Value to convert to set.
+        convert_value_func: Function to convert values recursively.
+
+    Returns:
+        Set with properly converted items.
+
+    Raises:
+        TypeError: When value is not a list.
+    """
+    if not isinstance(value, list):
+        raise TypeError(f"Expected list for set conversion, got {type(value).__name__}")
+
+    if not args:
+        # Plain set (no type parameters) - convert all items to strings
+        return {str(item) for item in value}
+
+    item_type = args[0]
+    converted_set: set[Any] = set()
+
+    for item in value:
+        match item_type:
+            case t if t is str:
+                converted_set.add(str(item))
+            case t if t is int:
+                converted_set.add(int(item))
+            case t if t is float:
+                converted_set.add(float(item))
+            case t if t is bool:
+                converted_set.add(convert_bool(item))
+            case t if t is Any:
+                converted_set.add(item)
+            case _:
+                converted_set.add(item)
+
+    return converted_set
+
+
+def convert_tuple(args: tuple[type, ...], value: Any, convert_value_func: Any) -> tuple[Any, ...]:
+    """Convert list values to tuple with proper type conversion.
+
+    Args:
+        args: Type arguments for the tuple (e.g., for tuple[str, int, float], args would be (str, int, float)).
+        value: Value to convert to tuple.
+        convert_value_func: Function to convert values recursively.
+
+    Returns:
+        Tuple with properly converted items.
+
+    Raises:
+        TypeError: When value is not a list.
+    """
+    if not isinstance(value, list):
+        raise TypeError(f"Expected list for tuple conversion, got {type(value).__name__}")
+
+    converted_list: list[Any] = []
+
+    if not args:
+        # Plain tuple (no type parameters) - convert all items to strings
+        return tuple(str(item) for item in value)
+
+    # For typed tuples, convert each element according to its position type
+    for i, item in enumerate(value):
+        if i < len(args):
+            item_type = args[i]
+            match item_type:
+                case t if t is str:
+                    converted_list.append(str(item))
+                case t if t is int:
+                    converted_list.append(int(item))
+                case t if t is float:
+                    converted_list.append(float(item))
+                case t if t is bool:
+                    converted_list.append(convert_bool(item))
+                case t if t is Any:
+                    converted_list.append(item)
+                case _:
+                    converted_list.append(item)
+        else:
+            # If more items than type hints, keep original values
+            converted_list.append(item)
+
+    return tuple(converted_list)
+
+
 def convert_generic_type(attr: str, kind: type, value: Any, convert_value_func: Any) -> Any:
     """Handle conversion of generic types like list[str], dict[str, int], etc.
 
@@ -302,6 +393,10 @@ def convert_generic_type(attr: str, kind: type, value: Any, convert_value_func: 
             return convert_list(args, value, convert_value_func)
         case t if t is dict or kind is dict:
             return convert_dict(args, value, convert_value_func)
+        case t if t is set or kind is set:
+            return convert_set(args, value, convert_value_func)
+        case t if t is tuple or kind is tuple:
+            return convert_tuple(args, value, convert_value_func)
         case _:
             return value
 
@@ -328,5 +423,9 @@ def get_default_value(kind: type) -> Any:
             return []
         case t if get_origin(t) is dict or t is dict:
             return {}
+        case t if get_origin(t) is set or t is set:
+            return set()
+        case t if get_origin(t) is tuple or t is tuple:
+            return ()
         case _:
             return None
