@@ -1,0 +1,20 @@
+# Basic TomlEv Configuration Example
+
+app_name = "My Application"
+debug = "${DEBUG|-false}"
+environment = "${ENV|-development}"
+port = "${PORT|-8000}"
+log_level = "${LOG_LEVEL|-INFO}"
+
+[database]
+host = "${DB_HOST|-localhost}"
+port = "${DB_PORT|-5432}"
+name = "${DB_NAME|-myapp_db}"
+user = "${DB_USER|-postgres}"
+password = "${DB_PASSWORD}"
+pool_size = "${DB_POOL_SIZE|-10}"
+
+[redis]
+host = "${REDIS_HOST|-127.0.0.1}"
+port = "${REDIS_PORT|-6379}"
+db = "${REDIS_DB|-0}"

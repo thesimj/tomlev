@@ -235,6 +235,7 @@ class TestPropertyBasedEdgeCases:
     )
     def test_invalid_attribute_names_rejected(self, invalid_keys: list[str]) -> None:
         """Test that invalid attribute names are properly rejected."""
+        from tomlev.errors import ConfigValidationError
 
         class StrictConfig(BaseConfigModel):
             valid_attr: str
@@ -243,11 +244,8 @@ class TestPropertyBasedEdgeCases:
         for invalid_key in invalid_keys:
             config_data = {"valid_attr": "test", invalid_key: "value"}
 
-            # Should raise assertion error for unknown keys
-            import re
-
-            escaped_key = re.escape(invalid_key)
-            with pytest.raises(AssertionError, match=f"{escaped_key} in config file but not in config model"):
+            # Should raise ConfigValidationError for unknown keys
+            with pytest.raises(ConfigValidationError, match="found in config file but not defined in config model"):
                 StrictConfig(**config_data)
 
     @given(empty_values=st.one_of(st.just(None), st.just(""), st.just([]), st.just({})))

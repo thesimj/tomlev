@@ -106,8 +106,11 @@ class BaseConfigModel:
             properties[attr] = self._convert_value(attr, kind, kwargs.get(attr), kwargs)
 
         # Check for unknown attributes (maintain compatibility)
-        for key in kwargs:
-            assert key in properties, f"{key} in config file but not in config model!"  # nosec B101
+        unknown_keys = [key for key in kwargs if key not in properties]
+        if unknown_keys:
+            raise ConfigValidationError(
+                [("unknown_attributes", f"Keys {unknown_keys} found in config file but not defined in config model")]
+            )
 
         # Set all validated properties
         for key, value in properties.items():
@@ -119,11 +122,11 @@ class BaseConfigModel:
         if value is None:
             if hasattr(self.__class__, attr):
                 default = getattr(self.__class__, attr)
-                # Return a defensive copy for mutable defaults
-                try:
+                # Only deep copy mutable defaults (list, dict, set)
+                if isinstance(default, (list, dict, set)):
                     return copy.deepcopy(default)
-                except Exception:
-                    return default
+                # Immutable types (str, int, float, bool, tuple, None) can be returned directly
+                return default
             return get_default_value(kind)
 
         # Use structural pattern matching for type conversion

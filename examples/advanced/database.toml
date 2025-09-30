@@ -1,0 +1,12 @@
+# Database Configuration (included by main.toml)
+
+host = "${DB_HOST|-localhost}"
+port = "${DB_PORT|-5432}"
+name = "${DB_NAME|-advanced_db}"
+user = "${DB_USER|-admin}"
+password = "${DB_PASSWORD}"
+
+[connection_pool]
+min_size = 5
+max_size = 20
+timeout = 30
