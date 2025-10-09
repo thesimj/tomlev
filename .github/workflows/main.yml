@@ -4,7 +4,7 @@ name: TomlEv CI/CD Pipeline
 # All tests and quality checks must pass before deployment
 #
 # Workflow Structure:
-# 1. build-and-tests: Test across Python 3.11, 3.12, 3.13
+# 1. build-and-tests: Test across Python 3.11, 3.12, 3.13, 3.14
 # 2. quality-checks: Run comprehensive quality suite on all OS platforms
 # 3. build-artifacts: Build packages (requires both 1&2 to succeed)
 # 4. test-installation: Verify package installation
@@ -27,12 +27,12 @@ env:
   # Windows cache is handled per-job due to path differences
 jobs:
   # Test suite across multiple Python versions
-  # Tests must pass on all supported Python versions (3.11, 3.12, 3.13)
+  # Tests must pass on all supported Python versions (3.11, 3.12, 3.13, 3.14)
   build-and-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.11', '3.12', '3.13' ]
+        python-version: [ '3.11', '3.12', '3.13', '3.14' ]
       fail-fast: false  # Continue testing other versions even if one fails
 
     steps:

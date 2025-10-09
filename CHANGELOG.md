@@ -5,6 +5,28 @@ All notable changes to TomlEv will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.0.5] - 2025-10-09
+
+### Added
+
+- **Python 3.14 Support**: Full compatibility with Python 3.14
+    - Updated CI/CD pipeline to test on Python 3.14 across all platforms (Ubuntu, Windows, macOS)
+    - Updated mypy configuration to use Python 3.14 (`python_version = "3.14"`)
+    - Updated ruff configuration to focus on Python 3.14 (`target-version = "py314"`)
+    - Compatible with PEP 649 (deferred annotation evaluation)
+    - Compatible with PEP 750 (template string literals)
+    - Compatible with PEP 779 (free-threaded Python)
+    - Compatible with all Python 3.14 new features and optimizations
+
+### Enhanced
+
+- Updated development tooling to support Python 3.14 syntax and features
+- CI/CD now validates across Python 3.11, 3.12, 3.13, and 3.14
+- Updated ruff pre-commit hook to v0.12.5 for better Python 3.14 support
+- Improved future compatibility with latest Python releases
+
 ## [1.0.4] - 2025-01-17
 
 ### Added

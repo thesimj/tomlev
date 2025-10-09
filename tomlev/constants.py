@@ -57,4 +57,4 @@ BOOL_TRUE_VALUES: set[str] = {"true", "1", "yes", "y", "on", "t"}
 INCLUDE_KEY: str = "__include"
 
 # Package version
-VERSION: str = "1.0.4"
+VERSION: str = "1.0.5"

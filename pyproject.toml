@@ -1,6 +1,6 @@
 [project]
 name = "tomlev"
-version = "1.0.4"
+version = "1.0.5"
 description = "Type-safe TOML configuration management with environment variable substitution and automatic validation for modern Python applications."
 authors = [{ name = "Nick Bubelich", email = "m+github@bubelich.com" }]
 license = { text = "MIT" }
@@ -88,7 +88,7 @@ branch = true
 source = ['tomlev']
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.14"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -134,8 +134,8 @@ exclude = [
 line-length = 120
 indent-width = 4
 
-# Assume Python 3.11
-target-version = "py311"
+# Assume Python 3.14
+target-version = "py314"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
