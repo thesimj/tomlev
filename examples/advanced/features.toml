@@ -1,0 +1,6 @@
+# Feature Flags Configuration (included by main.toml)
+
+new_ui = "${FEATURE_NEW_UI|-false}"
+beta_api = "${FEATURE_BETA_API|-false}"
+experimental_cache = "${FEATURE_EXP_CACHE|-false}"
+ai_assistant = "${FEATURE_AI|-true}"

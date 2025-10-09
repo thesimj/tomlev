@@ -1,0 +1,14 @@
+# Mutmut Configuration
+# Mutation testing for TomlEv
+
+# Paths to mutate
+paths_to_mutate=tomlev/
+
+# Test runner command
+runner=python -m pytest -x --tb=line
+
+# Tests directory
+tests_dir=tests/
+
+# Cache directory
+dict_synonyms=Struct, NamedStruct

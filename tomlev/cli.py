@@ -64,8 +64,11 @@ def cli_validate(toml_file: str, env_file: str | None, strict: bool, include_env
     # Read dotenv
     try:
         dotenv = read_env_file(env_file, strict)
-    except Exception as e:  # noqa: BLE001  # pragma: no cover - rare environment read errors
+    except (OSError, IOError, PermissionError) as e:
         print(f"Error reading env file: {e}")
+        return 1
+    except ConfigValidationError as e:
+        print(str(e))
         return 1
     env.update(dotenv)
 
@@ -78,7 +81,7 @@ def cli_validate(toml_file: str, env_file: str | None, strict: bool, include_env
     except ConfigValidationError as e:
         print(str(e))
         return 1
-    except Exception as e:  # noqa: BLE001
+    except (OSError, IOError, ValueError, TypeError) as e:
         print(f"Validation error: {e}")
         return 1
 
@@ -107,8 +110,11 @@ def cli_render(toml_file: str, env_file: str | None, strict: bool, include_envir
     # Read dotenv
     try:
         dotenv = read_env_file(env_file, strict)
-    except Exception as e:  # noqa: BLE001  # pragma: no cover - rare environment read errors
+    except (OSError, IOError, PermissionError) as e:
         print(f"Error reading env file: {e}")
+        return 1
+    except ConfigValidationError as e:
+        print(str(e))
         return 1
     env.update(dotenv)
 
@@ -121,7 +127,7 @@ def cli_render(toml_file: str, env_file: str | None, strict: bool, include_envir
     except ConfigValidationError as e:
         print(str(e))
         return 1
-    except Exception as e:  # noqa: BLE001
+    except (OSError, IOError, ValueError, TypeError) as e:
         print(f"Render error: {e}")
         return 1
 

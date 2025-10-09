@@ -1,0 +1,30 @@
+# Advanced TomlEv Configuration with Includes
+
+app_name = "Advanced Application"
+environment = "${ENV|-production}"
+
+# Include database configuration from separate file
+[database]
+__include = "database.toml"
+
+# Include feature flags from separate file
+[features]
+__include = "features.toml"
+
+[api]
+version = "v1"
+endpoints = ["/api/users", "/api/posts", "/api/comments"]
+allowed_methods = ["GET", "POST", "PUT", "DELETE"]
+rate_limits = { anonymous = 100, authenticated = 1000, premium = 10000 }
+
+[security]
+cors_origins = ["https://example.com", "https://app.example.com"]
+allowed_hosts = ["example.com", "app.example.com", "api.example.com"]
+jwt_algorithm = "HS256"
+session_timeout = 3600
+
+[monitoring]
+enabled = "${MONITORING_ENABLED|-true}"
+metrics = ["cpu", "memory", "disk", "network"]
+alert_thresholds = { cpu = 80.0, memory = 85.0, disk = 90.0 }
+coordinates = [40.7128, -74.0060]  # NYC coordinates as tuple

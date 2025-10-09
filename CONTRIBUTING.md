@@ -3,7 +3,7 @@
 Thank you for your interest in contributing to TomlEv! We welcome contributions of all kinds, from bug reports and
 documentation improvements to feature implementations and performance optimizations.
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Fork and clone the repository**
    ```bash
@@ -27,7 +27,7 @@ documentation improvements to feature implementations and performance optimizati
    uv run pytest
    ```
 
-## 📋 Development Workflow
+## Development Workflow
 
 ### Branch Naming Convention
 
@@ -80,7 +80,7 @@ documentation improvements to feature implementations and performance optimizati
    git push origin feature/your-feature-name
    ```
 
-## 🎯 Areas for Contribution
+## Areas for Contribution
 
 ### High Priority
 
@@ -180,7 +180,7 @@ uv run pytest -m benchmark --benchmark-only
 uv run pytest -m hypothesis
 ```
 
-## 📚 Documentation Guidelines
+## Documentation Guidelines
 
 ### API Documentation
 
@@ -237,7 +237,7 @@ def load_config(file_path: str, strict: bool = True) -> ConfigModel:
 5. **Performance**: Are there any performance implications?
 6. **Security**: Are there any security concerns?
 
-## 🐛 Reporting Issues
+## Reporting Issues
 
 ### Bug Reports
 
@@ -258,7 +258,7 @@ Use our feature request template and include:
 - **Alternatives considered** - What other approaches were considered?
 - **Additional context** - Any other relevant information
 
-## 🎉 Community Guidelines
+## Community Guidelines
 
 ### Be Respectful
 
@@ -288,6 +288,6 @@ project.
 
 ---
 
-**Thank you for contributing to TomlEv!** 🎉
+**Thank you for contributing to TomlEv!**
 
 Your contributions help make configuration management better for Python developers everywhere.

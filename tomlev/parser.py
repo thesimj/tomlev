@@ -25,6 +25,7 @@ SOFTWARE.
 from __future__ import annotations
 
 import io
+from functools import lru_cache
 from pathlib import Path
 from tomllib import loads as toml_loads
 from typing import Any, TypeAlias
@@ -39,6 +40,20 @@ __all__ = ["ConfigDict", "read_toml", "substitute_and_parse"]
 
 # Type aliases for clarity
 ConfigDict: TypeAlias = dict[str, Any]
+
+
+@lru_cache(maxsize=32)
+def _read_file_cached(file_path: str) -> str:
+    """Read file content with caching to avoid repeated disk I/O.
+
+    Args:
+        file_path: Path to the file to read.
+
+    Returns:
+        File content as string.
+    """
+    with io.open(file_path, mode="rt", encoding="utf8") as fp:
+        return fp.read()
 
 
 def substitute_and_parse(content: str, env: EnvDict, strict: bool, separator: str = DEFAULT_SEPARATOR) -> ConfigDict:
@@ -62,10 +77,11 @@ def substitute_and_parse(content: str, env: EnvDict, strict: bool, separator: st
     # not found variables
     not_found_variables = set()
 
-    # change dictionary
-    replaces: dict[str, str] = {}
+    # substitutions dictionary
+    substitutions: dict[str, str] = {}
 
-    shifting = 0
+    # Build list of content segments for efficient string building
+    segments: list[tuple[int, int, str]] = []  # (start, end, replacement)
 
     # iterate over findings
     for entry in RE_PATTERN.finditer(content):
@@ -88,8 +104,8 @@ def substitute_and_parse(content: str, env: EnvDict, strict: bool, separator: st
                 pref = groups.get("pref") or ""
                 post = groups.get("post") or ""
                 replacement = f"{pref}{esc_val}{post}"
-                content = content[: span[0] + shifting] + replacement + content[span[1] + shifting :]
-                shifting += len(replacement) - (span[1] - span[0])
+                segments.append((span[0], span[1], replacement))
+                continue
 
         if variable is not None:
             if variable in env:
@@ -105,14 +121,27 @@ def substitute_and_parse(content: str, env: EnvDict, strict: bool, separator: st
             if default is not None:
                 search += separator + default
             search += "}" if groups["braced"] else ""
-            replaces[search] = replace
+            substitutions[search] = replace
 
     if strict and not_found_variables:
         raise EnvironmentVariableError.missing_variables(list(not_found_variables))
 
-    # Apply replacements
-    for replace in sorted(replaces, reverse=True):
-        content = content.replace(replace, replaces[replace])
+    # Apply escape replacements efficiently using segments
+    if segments:
+        result_parts: list[str] = []
+        last_end: int = 0
+        for start, end, replacement in segments:
+            result_parts.append(content[last_end:start])
+            # Replacement is always str for escaped values, never None in practice
+            if replacement is not None:
+                result_parts.append(replacement)
+            last_end = end
+        result_parts.append(content[last_end:])
+        content = "".join(result_parts)
+
+    # Apply variable substitutions (single-pass, longest first to avoid partial replacements)
+    for search in sorted(substitutions, key=len, reverse=True):
+        content = content.replace(search, substitutions[search])
 
     # Parse TOML
     toml = toml_loads(content)
@@ -137,12 +166,24 @@ def read_toml(file_path: str, env: EnvDict, strict: bool, separator: str = DEFAU
         FileNotFoundError: When the specified TOML file doesn't exist.
         EnvironmentVariableError: In strict mode, when referenced variables are undefined.
     """
-    # read file
-    with io.open(file_path, mode="rt", encoding="utf8") as fp:
-        content: str = fp.read()
+    # read file (with caching for repeated reads)
+    try:
+        content: str = _read_file_cached(file_path)
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"TOML file not found: {file_path}") from e
+    except (OSError, IOError) as e:
+        raise OSError(f"Error reading TOML file '{file_path}': {e}") from e
 
     # Perform substitution and parse
-    toml = substitute_and_parse(content, env, strict, separator)
+    try:
+        toml = substitute_and_parse(content, env, strict, separator)
+    except EnvironmentVariableError as e:
+        # Add file context to environment variable errors
+        errors = [(attr, f"{msg} (in file: {file_path})") for attr, msg in e.errors]
+        raise EnvironmentVariableError(errors) from e
+    except Exception as e:
+        # Add file context to parsing errors
+        raise ValueError(f"Error parsing TOML file '{file_path}': {e}") from e
 
     # Expand __include directives recursively
     if toml and isinstance(toml, dict):

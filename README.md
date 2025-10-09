@@ -371,7 +371,7 @@ When strict mode is disabled, TomlEv will not raise errors for missing environme
 
 ### Support
 
-If you like **TomlEv**, please give it a star ⭐ https://github.com/thesimj/tomlev
+If you like **TomlEv**, please give it a star on GitHub: https://github.com/thesimj/tomlev
 
 ### License
 
