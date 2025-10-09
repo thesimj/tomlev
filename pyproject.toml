@@ -1,6 +1,6 @@
 [project]
 name = "tomlev"
-version = "1.0.5"
+version = "1.0.6"
 description = "Type-safe TOML configuration management with environment variable substitution and automatic validation for modern Python applications."
 authors = [{ name = "Nick Bubelich", email = "m+github@bubelich.com" }]
 license = { text = "MIT" }
@@ -60,8 +60,7 @@ dev = [
     "docstr-coverage~=2.3.0",
     "radon~=6.0.1",
     "pytest-benchmark~=5.1.0",
-    "hypothesis~=6.138.0",
-    "mutmut~=3.3.0"
+    "hypothesis~=6.140.0"
 ]
 
 [project.urls]
@@ -199,18 +198,4 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "benchmark: marks tests as benchmark tests"
-]
-
-[tool.mutmut]
-# Mutation testing configuration
-paths_to_mutate = "tomlev/"
-backup = false
-runner = "python -m pytest -x --tb=line"
-tests_dir = "tests/"
-# Exclude specific patterns from mutation testing
-exclude = [
-    "__pycache__",
-    "*.pyc",
-    ".pytest_cache",
-    "__init__.py"
 ]
