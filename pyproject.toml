@@ -1,35 +1,51 @@
 [project]
 name = "tomlev"
-version = "1.0.6"
+version = "1.0.7"
 description = "Type-safe TOML configuration management with environment variable substitution and automatic validation for modern Python applications."
 authors = [{ name = "Nick Bubelich", email = "m+github@bubelich.com" }]
 license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = [
+    # Core technology
     "toml",
     "configuration",
+    "python-config",
+    "app-config",
+    # Environment/config sources
     "environment-variables",
+    "env",
+    "dotenv",
+    "env-substitution",
+    # Type safety & validation
     "type-safety",
+    "typed",
+    "type-hints",
     "validation",
+    "schema",
+    # Ecosystem positioning
+    "pydantic-like",
     "config-management",
     "settings",
-    "python311",
-    "type-hints"
+    "12-factor"
 ]
 classifiers = [
     # Development Status
     "Development Status :: 5 - Production/Stable",
     # License
     "License :: OSI Approved :: MIT License",
+    # Environment
+    "Environment :: Console",
     # Operating System
     "Operating System :: OS Independent",
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: MacOS",
     # Topic
+    "Topic :: Software Development",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: System :: Systems Administration",
+    "Topic :: System :: Installation/Setup",
     "Topic :: Utilities",
     # Intended Audience
     "Intended Audience :: Developers",

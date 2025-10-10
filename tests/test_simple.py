@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Literal
 
-from tomlev import BaseConfigModel, TomlEv
+from tomlev import BaseConfigModel, TomlEv, tomlev
 
 
 class SelectEnum(Enum):
@@ -116,3 +116,33 @@ def test_simple_env_files():
     # asset set and tuple
     assert type(env.test_set) is set and env.test_set == {"one", "two", "five"}
     assert type(env.test_tuple) is tuple and env.test_tuple == ("one", 1, 10.5)
+
+
+def test_tomlev_convenience_function():
+    """Test the convenience function tomlev() that combines instantiation and validation."""
+    # Use the convenience function
+    env: SimpleConfig = tomlev(SimpleConfig, "tests/envs/env.simple.toml", "tests/envs/.env.simple")
+
+    # Verify it returns the same validated config as the class-based approach
+    assert env.debug is False
+    assert env.environment == "develop"
+    assert env.temp == -20.5
+
+    # Verify complex nested structures work
+    assert env.stripe.key == "sk-test-00000"
+    assert env.database.port == 5432
+    assert env.redis.keys == ["one", "two", "three"]
+    assert env.select_enum == SelectEnum.ONE
+
+    # Verify it's a proper SimpleConfig instance
+    assert isinstance(env, SimpleConfig)
+
+
+def test_tomlev_with_defaults():
+    """Test tomlev() function with default parameters."""
+    # This should work with minimal parameters using defaults
+    env: SimpleConfig = tomlev(SimpleConfig, "tests/envs/env.simple.toml", "tests/envs/.env.simple")
+
+    # Basic validation that config loaded correctly
+    assert env.database.host == "localhost"
+    assert env.redis.port == 6379

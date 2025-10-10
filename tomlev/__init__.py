@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .__main__ import TomlEv, __version__
+from .__main__ import TomlEv, __version__, tomlev
 from .__model__ import BaseConfigModel
 from .errors import ConfigValidationError
 
-__all__ = ["BaseConfigModel", "TomlEv", "ConfigValidationError", "__version__"]
+__all__ = ["BaseConfigModel", "TomlEv", "tomlev", "ConfigValidationError", "__version__"]

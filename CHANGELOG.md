@@ -5,6 +5,29 @@ All notable changes to TomlEv will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2025-10-10
+
+### Added
+
+- **Convenience Function `tomlev()`**: New streamlined function for one-line configuration loading
+    - Shorthand for `TomlEv(...).validate()` pattern
+    - Simplifies the most common use case with a single function call
+    - Accepts same parameters as `TomlEv` class: `cls`, `toml_file`, `env_file`, `strict`, `include_environment`
+    - Returns validated configuration model directly
+    - Full backward compatibility - existing `TomlEv` class approach continues to work
+    - Example usage:
+      ```python
+      # New simple approach
+      config = tomlev(AppConfig, "env.toml", ".env")
+
+      # Equivalent to existing approach
+      config = TomlEv(AppConfig, "env.toml", ".env").validate()
+      ```
+    - When to use: Perfect for simple configuration loading without needing access to `.environ`, `.strict`, or `.raw`
+      properties
+    - Comprehensive test coverage with new tests in `test_simple.py`
+    - Fully documented with Google-style docstrings and examples
+
 ## [1.0.6] - 2025-10-09
 
 ### Added

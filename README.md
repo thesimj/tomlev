@@ -124,20 +124,23 @@ Tip: See the [File Includes](#file-includes) section for more details on `__incl
 
 #### 3. Use TomlEv in your Python code
 
+**Recommended: Simple convenience function**
+
 ```python
-from tomlev import TomlEv
+from tomlev import tomlev
 
-# Load and validate configuration (using defaults: "env.toml" and ".env")
-config: AppConfig = TomlEv(AppConfig).validate()
+# Simple one-liner - load and validate configuration
+# Uses defaults: "env.toml" and ".env"
+config: AppConfig = tomlev(AppConfig)
 
-# Or explicitly specify files (same as defaults)
-config: AppConfig = TomlEv(AppConfig, "env.toml", ".env").validate()
+# Or explicitly specify files
+config: AppConfig = tomlev(AppConfig, "env.toml", ".env")
 
 # You can also set defaults via environment variables
 # export TOMLEV_TOML_FILE="config/production.toml"
 # export TOMLEV_ENV_FILE="config/.env.production"
 # Then just use:
-config: AppConfig = TomlEv(AppConfig).validate()  # Uses env var defaults
+config: AppConfig = tomlev(AppConfig)  # Uses env var defaults
 
 # Access configuration with type safety
 print(f"App: {config.app_name}")
@@ -151,6 +154,29 @@ db_port = config.database.port  # Automatically converted to int
 # All properties are type-safe and validated
 redis_host = config.redis.host
 redis_port = config.redis.port  # Automatically converted to int
+```
+
+**Alternative: Class-based approach (when you need advanced features)**
+
+Use the `TomlEv` class when you need access to `.environ`, `.strict`, or `.raw` properties:
+
+```python
+from tomlev import TomlEv
+
+# Create instance to access additional properties
+loader = TomlEv(AppConfig, "env.toml", ".env")
+
+# Access environment variables used
+env_vars = loader.environ
+
+# Check strict mode setting
+is_strict = loader.strict
+
+# Get raw parsed TOML dict
+raw_config = loader.raw
+
+# Get validated config
+config: AppConfig = loader.validate()
 ```
 
 ### Configuration Models
@@ -169,7 +195,7 @@ TomlEv uses `BaseConfigModel` to provide type-safe configuration handling. Here 
 
 ```python
 from typing import Any
-from tomlev import BaseConfigModel, TomlEv
+from tomlev import BaseConfigModel, tomlev, TomlEv
 
 
 class QueryConfig(BaseConfigModel):
@@ -208,14 +234,13 @@ class AppConfig(BaseConfigModel):
     redis: RedisConfig
 
 
-# Usage with .env file support (uses defaults: "env.toml" and ".env")
-config: AppConfig = TomlEv(
-    AppConfig,
-    "env.toml",  # Default TOML file
-    ".env"  # Default .env file
-).validate()
+# Simple usage with convenience function (recommended)
+config: AppConfig = tomlev(AppConfig)
 
-# Or simply use defaults
+# Or explicitly specify files
+config: AppConfig = tomlev(AppConfig, "env.toml", ".env")
+
+# Alternative: Class-based approach if you need .environ, .strict, or .raw
 config: AppConfig = TomlEv(AppConfig).validate()
 ```
 
@@ -361,10 +386,13 @@ This helps catch configuration errors early. You can disable strict mode in two 
 import os
 
 os.environ["TOMLEV_STRICT_DISABLE"] = "true"
-config = TomlEv(AppConfig).validate()  # Uses defaults: "env.toml" and ".env"
+config = tomlev(AppConfig)  # Uses defaults: "env.toml" and ".env"
 
-# Method 2: Pass strict=False when creating the TomlEv instance
-config = TomlEv(AppConfig, strict=False).validate()  # Uses defaults with strict=False
+# Method 2: Pass strict=False when calling tomlev()
+config = tomlev(AppConfig, strict=False)  # Uses defaults with strict=False
+
+# Alternative: Using the TomlEv class
+config = TomlEv(AppConfig, strict=False).validate()
 ```
 
 When strict mode is disabled, TomlEv will not raise errors for missing environment variables or duplicate definitions.

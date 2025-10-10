@@ -179,6 +179,66 @@ class TomlEv(Generic[T]):
         return self.__cls
 
 
+def tomlev(
+    cls: type[T],
+    toml_file: str | None = None,
+    env_file: str | None = None,
+    strict: bool = True,
+    include_environment: bool = True,
+) -> T:
+    """Convenience function to load and validate configuration in one step.
+
+    This is shorthand for TomlEv(...).validate(). Use this when you don't need
+    access to intermediate properties like .environ, .strict, or .raw.
+
+    Args:
+        cls: Configuration model class that extends BaseConfigModel.
+        toml_file: Path to the TOML configuration file. If None, uses TOMLEV_TOML_FILE
+                  environment variable or defaults to "env.toml".
+        env_file: Path to the .env file for environment variables. If None, uses
+                 TOMLEV_ENV_FILE environment variable or defaults to ".env".
+                 Set to False and skip loading .env file.
+        strict: Whether to enforce a strict mode of validation. When True, raises
+               errors for undefined variables or duplicates. Defaults to True.
+        include_environment: Whether to include system environment variables.
+                           Defaults to True.
+
+    Returns:
+        The validated configuration model instance with all values properly typed and converted.
+
+    Raises:
+        ConfigValidationError: When configuration validation fails due to type conversion
+                              errors, missing required fields, or undefined variables in strict mode.
+        FileNotFoundError: When the specified TOML file doesn't exist.
+
+    Example:
+        ```python
+        class AppConfig(BaseConfigModel):
+            host: str
+            port: int
+            debug: bool
+
+        # Simple one-liner
+        config = tomlev(AppConfig, "env.toml", ".env")
+
+        # Equivalent to:
+        config = TomlEv(AppConfig, "env.toml", ".env").validate()
+
+        # Access type-safe configuration
+        print(f"Server running on {config.host}:{config.port}")
+        ```
+
+    Note:
+        - Strict mode can be globally disabled by setting the environment
+          variable TOMLEV_STRICT_DISABLE to "true", "1", "yes", "y", or "on".
+        - Default file paths can be set via TOMLEV_TOML_FILE and TOMLEV_ENV_FILE
+          environment variables.
+        - If you need access to .environ, .strict, or .raw properties, use the
+          TomlEv class directly instead of this convenience function.
+    """
+    return TomlEv(cls, toml_file, env_file, strict, include_environment).validate()
+
+
 def main(argv: list[str] | None = None) -> int:
     """TomlEv CLI entry point.
 
