@@ -100,3 +100,53 @@ def test_cli_render_error_cases() -> None:
         assert code2 == 1
     finally:
         os.unlink(invalid_toml)
+
+
+def test_cli_validate_env_file_permission_error() -> None:
+    """Test cli_validate handles permission errors when reading .env file."""
+    # Create a valid TOML file
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+        f.write('name = "test"\n')
+        toml_file = f.name
+
+    # Create an .env file and make it unreadable (Unix only)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+        f.write("KEY=value\n")
+        env_file = f.name
+
+    try:
+        if os.name != "nt":  # Skip on Windows
+            os.chmod(env_file, 0o000)
+            code = tomlev_main(["validate", "--toml", toml_file, "--env-file", env_file, "--no-environ"])
+            assert code == 1
+    finally:
+        # Restore permissions and clean up
+        if os.name != "nt":
+            os.chmod(env_file, 0o644)
+        os.unlink(toml_file)
+        os.unlink(env_file)
+
+
+def test_cli_render_env_file_permission_error() -> None:
+    """Test cli_render handles permission errors when reading .env file."""
+    # Create a valid TOML file
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+        f.write('name = "test"\n')
+        toml_file = f.name
+
+    # Create an .env file and make it unreadable (Unix only)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+        f.write("KEY=value\n")
+        env_file = f.name
+
+    try:
+        if os.name != "nt":  # Skip on Windows
+            os.chmod(env_file, 0o000)
+            code = tomlev_main(["render", "--toml", toml_file, "--env-file", env_file, "--no-environ"])
+            assert code == 1
+    finally:
+        # Restore permissions and clean up
+        if os.name != "nt":
+            os.chmod(env_file, 0o644)
+        os.unlink(toml_file)
+        os.unlink(env_file)
