@@ -89,7 +89,8 @@ dev = [
     "pytest-benchmark~=5.1.0",
     "hypothesis~=6.140.0",
     "aiofiles>=24.0.0",
-    "pytest-asyncio~=1.2.0"
+    "pytest-asyncio~=1.2.0",
+    "types-aiofiles"
 ]
 
 [project.urls]

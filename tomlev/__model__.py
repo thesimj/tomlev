@@ -26,7 +26,7 @@ import copy
 import types
 from enum import Enum
 from functools import lru_cache
-from typing import Any, TypeAlias, Union, get_args, get_origin, get_type_hints
+from typing import Any, ClassVar, TypeAlias, Union, get_args, get_origin, get_type_hints
 
 from .converters import (
     convert_bool,
@@ -44,7 +44,7 @@ PropertyDict: TypeAlias = dict[str, Any]
 __all__ = ["BaseConfigModel", "ConfigValidationError"]
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=128, typed=True)
 def _get_cached_type_hints(cls: type) -> dict[str, type]:
     """Cache type hints to avoid repeated resolution.
 
@@ -54,7 +54,10 @@ def _get_cached_type_hints(cls: type) -> dict[str, type]:
     Returns:
         Dictionary mapping attribute names to their types.
     """
-    return get_type_hints(cls)
+    # Get all type hints, excluding ClassVar annotations
+    hints = get_type_hints(cls, include_extras=True)
+    # Filter out ClassVar annotations
+    return {k: v for k, v in hints.items() if get_origin(v) is not ClassVar}
 
 
 class BaseConfigModel:
@@ -101,7 +104,8 @@ class BaseConfigModel:
         from their type annotations, reducing memory footprint by 40-50%.
     """
 
-    __slots__ = ("_frozen",)  # Base class tracks frozen state
+    __slots__ = ("_frozen",)  # Base class tracks the frozen state
+    __class_frozen: ClassVar[bool] = False
 
     def __init_subclass__(cls, frozen: bool = False, **kwargs: Any) -> None:
         """Automatically generate __slots__ for subclasses based on their annotations.
@@ -115,8 +119,8 @@ class BaseConfigModel:
         """
         super().__init_subclass__(**kwargs)
 
-        # Store frozen flag as class attribute
-        cls._class_frozen = frozen
+        # Store frozen flag as a class attribute
+        cls._BaseConfigModel__class_frozen = frozen  # type: ignore[attr-defined]
 
         # Only auto-generate slots if the class doesn't explicitly define them
         if "__slots__" not in cls.__dict__:
@@ -143,7 +147,7 @@ class BaseConfigModel:
         object.__setattr__(self, "_frozen", False)
 
         # Use cached type hints to avoid repeated resolution
-        annotations = _get_cached_type_hints(self.__class__)
+        annotations = _get_cached_type_hints(self.__class__)  # type: ignore[arg-type]
         properties: PropertyDict = {}
 
         # Process each annotated attribute using the old approach but with new patterns
@@ -162,7 +166,7 @@ class BaseConfigModel:
             object.__setattr__(self, key, value)
 
         # Freeze the instance if the class is marked as frozen
-        if getattr(self.__class__, "_class_frozen", False):
+        if getattr(self.__class__, "_BaseConfigModel__class_frozen", False):
             object.__setattr__(self, "_frozen", True)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -234,7 +238,7 @@ class BaseConfigModel:
     def as_dict(self) -> dict[str, Any]:
         """Return a plain dict representation of the model (recursively)."""
         result: dict[str, Any] = {}
-        for attr in _get_cached_type_hints(self.__class__).keys():
+        for attr in _get_cached_type_hints(self.__class__).keys():  # type: ignore[arg-type]
             val = getattr(self, attr)
             if isinstance(val, BaseConfigModel):
                 result[attr] = val.as_dict()
