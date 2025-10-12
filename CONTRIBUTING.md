@@ -86,7 +86,7 @@ documentation improvements to feature implementations and performance optimizati
 
 - **Performance optimizations** - Profile and improve parsing speed
 - **Additional type support** - Extend type system capabilities
-- **Documentation** - Examples, tutorials, API documentation
+- **Documentation** - Tutorials, API documentation
 - **Error messages** - Improve error reporting and user experience
 
 ### Medium Priority

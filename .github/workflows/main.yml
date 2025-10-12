@@ -4,10 +4,10 @@ name: TomlEv CI/CD Pipeline
 # All tests and quality checks must pass before deployment
 #
 # Workflow Structure:
-# 1. build-and-tests: Test across Python 3.11, 3.12, 3.13, 3.14
+# 1. build-and-tests: Test across Python 3.11, 3.12, 3.13, 3.14 (includes async tests)
 # 2. quality-checks: Run comprehensive quality suite on all OS platforms
 # 3. build-artifacts: Build packages (requires both 1&2 to succeed)
-# 4. test-installation: Verify package installation
+# 4. test-installation: Verify package installation (including async extra)
 # 5. coveralls: Upload coverage (main branch only)
 # 6. pypi-publish: Deploy to PyPI (releases only, after all gates pass)
 
@@ -28,6 +28,7 @@ env:
 jobs:
   # Test suite across multiple Python versions
   # Tests must pass on all supported Python versions (3.11, 3.12, 3.13, 3.14)
+  # Includes async tests via pytest-asyncio and aiofiles
   build-and-tests:
     runs-on: ubuntu-latest
     strategy:
@@ -54,11 +55,11 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-
 
-      - name: Install dependencies
-        run: uv sync --dev
+      - name: Install dependencies (with async support)
+        run: uv sync --all-extras --dev
         continue-on-error: false
 
-      - name: Run comprehensive test suite
+      - name: Run comprehensive test suite (including async tests)
         run: uv run pytest -v --tb=native -p no:warnings --cov-fail-under 90 --cov
         continue-on-error: false  # MANDATORY: Tests must pass with 90%+ coverage
 
@@ -104,8 +105,8 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-
 
-      - name: Install dependencies
-        run: uv sync --dev
+      - name: Install dependencies (with async support)
+        run: uv sync --all-extras --dev
         continue-on-error: false
 
       - name: Run comprehensive quality checks
@@ -141,11 +142,11 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-
 
-      - name: Install dependencies
-        run: uv sync --dev
+      - name: Install dependencies (with async support)
+        run: uv sync --all-extras --dev
         continue-on-error: false
 
-      - name: Run tests with XML coverage report
+      - name: Run tests with XML coverage report (including async tests)
         run: uv run pytest -v --tb=native -p no:warnings --cov-fail-under 90 --cov --cov-report xml
         continue-on-error: false
 
@@ -187,8 +188,8 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-
 
-      - name: Install dependencies
-        run: uv sync --dev
+      - name: Install dependencies (with async support)
+        run: uv sync --all-extras --dev
         continue-on-error: false
 
       - name: Build wheel and source distribution
@@ -232,6 +233,12 @@ jobs:
         run: |
           uv pip install --system dist/*.whl
           python -c "import tomlev; print(f'TomlEv {tomlev.__version__} installed successfully')"
+        continue-on-error: false
+
+      - name: Test async extra installation
+        run: |
+          uv pip install --system 'tomlev[async]' --reinstall-package tomlev
+          python -c "from tomlev import tomlev_async; print('Async support verified')"
         continue-on-error: false
 
   # Publish to PyPI on release

@@ -25,6 +25,7 @@ SOFTWARE.
 from __future__ import annotations
 
 import io
+import re
 from functools import lru_cache
 from pathlib import Path
 from tomllib import loads as toml_loads
@@ -54,6 +55,33 @@ def _read_file_cached(file_path: str) -> str:
     """
     with io.open(file_path, mode="rt", encoding="utf8") as fp:
         return fp.read()
+
+
+def _apply_substitutions_batch(content: str, substitutions: dict[str, str]) -> str:
+    """Apply multiple substitutions in a single pass using regex for better performance.
+
+    This is significantly faster than multiple str.replace() calls when there are
+    many substitutions to perform.
+
+    Args:
+        content: The content string to perform substitutions on.
+        substitutions: Dictionary mapping search strings to replacement strings.
+
+    Returns:
+        Content with all substitutions applied.
+    """
+    if not substitutions:
+        return content
+
+    # Sort by length (longest first) to avoid partial replacements
+    sorted_keys = sorted(substitutions.keys(), key=len, reverse=True)
+
+    # Create a regex pattern that matches any of the search strings
+    # Escape each key to handle special regex characters
+    pattern = "|".join(re.escape(key) for key in sorted_keys)
+
+    # Perform single-pass replacement using a lambda that looks up the matched text
+    return re.sub(pattern, lambda m: substitutions[m.group(0)], content)
 
 
 def substitute_and_parse(content: str, env: EnvDict, strict: bool, separator: str = DEFAULT_SEPARATOR) -> ConfigDict:
@@ -139,9 +167,8 @@ def substitute_and_parse(content: str, env: EnvDict, strict: bool, separator: st
         result_parts.append(content[last_end:])
         content = "".join(result_parts)
 
-    # Apply variable substitutions (single-pass, longest first to avoid partial replacements)
-    for search in sorted(substitutions, key=len, reverse=True):
-        content = content.replace(search, substitutions[search])
+    # Apply variable substitutions using batch regex replacement for better performance
+    content = _apply_substitutions_batch(content, substitutions)
 
     # Parse TOML
     toml = toml_loads(content)

@@ -63,6 +63,16 @@ def convert_bool(value: Any) -> bool:
             return bool(value)
 
 
+# Type converter registry for performance optimization
+# Defined after convert_bool to avoid circular reference
+_SIMPLE_TYPE_CONVERTERS: dict[type, Any] = {
+    str: str,
+    int: int,
+    float: float,
+    bool: convert_bool,
+}
+
+
 def convert_enum(enum_type: type[Enum], value: Any) -> Enum:
     """Convert a value to an Enum member.
 
@@ -212,27 +222,24 @@ def convert_list(args: tuple[type, ...], value: Any, convert_value_func: Any) ->
         return [str(item) for item in value]
 
     item_type = args[0]
-    converted_list: list[Any] = []
 
+    # Use dict-based dispatch for simple types (performance optimization)
+    if item_type in _SIMPLE_TYPE_CONVERTERS:
+        converter = _SIMPLE_TYPE_CONVERTERS[item_type]
+        return [converter(item) for item in value]
+
+    # Handle complex types with pattern matching
+    converted_list: list[Any] = []
     for item in value:
-        match item_type:
-            case t if t is str:
-                converted_list.append(str(item))
-            case t if t is int:
-                converted_list.append(int(item))
-            case t if t is float:
-                converted_list.append(float(item))
-            case t if t is bool:
-                converted_list.append(convert_bool(item))
-            case t if t is not Any and hasattr(t, "__annotations__"):  # BaseConfigModel check without circular import
-                converted_list.append(t(**item) if isinstance(item, dict) else t())
-            case t if get_origin(t) is dict:
-                # Handle list[dict[...]] types
-                converted_list.append(convert_dict(get_args(t), item, convert_value_func))
-            case t if t is Any:
-                converted_list.append(item)
-            case _:
-                converted_list.append(item)
+        if item_type is Any:
+            converted_list.append(item)
+        elif get_origin(item_type) is dict:
+            # Handle list[dict[...]] types
+            converted_list.append(convert_dict(get_args(item_type), item, convert_value_func))
+        elif item_type is not Any and hasattr(item_type, "__annotations__"):  # BaseConfigModel check
+            converted_list.append(item_type(**item) if isinstance(item, dict) else item_type())
+        else:
+            converted_list.append(item)
 
     return converted_list
 
@@ -258,28 +265,22 @@ def convert_dict(args: tuple[type, ...], value: Any, convert_value_func: Any) ->
         return dict(value)
 
     _, value_type = args[0], args[1]
+
+    # Use dict-based dispatch for simple types (performance optimization)
+    if value_type in _SIMPLE_TYPE_CONVERTERS:
+        converter = _SIMPLE_TYPE_CONVERTERS[value_type]
+        return {str(k): converter(v) for k, v in value.items()}
+
+    # Handle complex types
     converted_dict: dict[str, Any] = {}
-
     for k, v in value.items():
-        # Convert key (usually string)
         key_str = str(k)
-
-        # Convert value based on type
-        match value_type:
-            case t if t is str:
-                converted_dict[key_str] = str(v)
-            case t if t is int:
-                converted_dict[key_str] = int(v)
-            case t if t is float:
-                converted_dict[key_str] = float(v)
-            case t if t is bool:
-                converted_dict[key_str] = convert_bool(v)
-            case t if t is Any:
-                converted_dict[key_str] = v
-            case t if t is not Any and hasattr(t, "__annotations__"):  # BaseConfigModel check without circular import
-                converted_dict[key_str] = t(**v) if isinstance(v, dict) else t()
-            case _:
-                converted_dict[key_str] = v
+        if value_type is Any:
+            converted_dict[key_str] = v
+        elif value_type is not Any and hasattr(value_type, "__annotations__"):  # BaseConfigModel check
+            converted_dict[key_str] = value_type(**v) if isinstance(v, dict) else value_type()
+        else:
+            converted_dict[key_str] = v
 
     return converted_dict
 
@@ -306,24 +307,17 @@ def convert_set(args: tuple[type, ...], value: Any, convert_value_func: Any) -> 
         return {str(item) for item in value}
 
     item_type = args[0]
-    converted_set: set[Any] = set()
 
-    for item in value:
-        match item_type:
-            case t if t is str:
-                converted_set.add(str(item))
-            case t if t is int:
-                converted_set.add(int(item))
-            case t if t is float:
-                converted_set.add(float(item))
-            case t if t is bool:
-                converted_set.add(convert_bool(item))
-            case t if t is Any:
-                converted_set.add(item)
-            case _:
-                converted_set.add(item)
+    # Use dict-based dispatch for simple types (performance optimization)
+    if item_type in _SIMPLE_TYPE_CONVERTERS:
+        converter = _SIMPLE_TYPE_CONVERTERS[item_type]
+        return {converter(item) for item in value}
 
-    return converted_set
+    # Handle Any or other types
+    if item_type is Any:
+        return set(value)
+
+    return {item for item in value}
 
 
 def convert_tuple(args: tuple[type, ...], value: Any, convert_value_func: Any) -> tuple[Any, ...]:
@@ -343,29 +337,23 @@ def convert_tuple(args: tuple[type, ...], value: Any, convert_value_func: Any) -
     if not isinstance(value, list):
         raise TypeError(f"Expected list for tuple conversion, got {type(value).__name__}")
 
-    converted_list: list[Any] = []
-
     if not args:
         # Plain tuple (no type parameters) - convert all items to strings
         return tuple(str(item) for item in value)
 
     # For typed tuples, convert each element according to its position type
+    converted_list: list[Any] = []
     for i, item in enumerate(value):
         if i < len(args):
             item_type = args[i]
-            match item_type:
-                case t if t is str:
-                    converted_list.append(str(item))
-                case t if t is int:
-                    converted_list.append(int(item))
-                case t if t is float:
-                    converted_list.append(float(item))
-                case t if t is bool:
-                    converted_list.append(convert_bool(item))
-                case t if t is Any:
-                    converted_list.append(item)
-                case _:
-                    converted_list.append(item)
+            # Use dict-based dispatch for simple types (performance optimization)
+            if item_type in _SIMPLE_TYPE_CONVERTERS:
+                converter = _SIMPLE_TYPE_CONVERTERS[item_type]
+                converted_list.append(converter(item))
+            elif item_type is Any:
+                converted_list.append(item)
+            else:
+                converted_list.append(item)
         else:
             # If more items than type hints, keep original values
             converted_list.append(item)

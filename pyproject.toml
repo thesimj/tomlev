@@ -1,7 +1,7 @@
 [project]
 name = "tomlev"
-version = "1.0.7"
-description = "Type-safe TOML configuration management with environment variable substitution and automatic validation for modern Python applications."
+version = "1.0.8"
+description = "Type-safe TOML configuration management with environment variable substitution, automatic validation, and optional async I/O support for modern Python applications."
 authors = [{ name = "Nick Bubelich", email = "m+github@bubelich.com" }]
 license = { text = "MIT" }
 readme = "README.md"
@@ -41,6 +41,10 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: MacOS",
+    # Framework
+    "Framework :: AsyncIO",
+    "Framework :: aiohttp",
+    "Framework :: FastAPI",
     # Topic
     "Topic :: Software Development",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -63,6 +67,13 @@ classifiers = [
     "Typing :: Typed",
 ]
 
+# Optional dependencies for additional features
+# Install with: pip install 'tomlev[async]' or uv add tomlev --optional async
+[project.optional-dependencies]
+async = [
+    "aiofiles>=24.0.0"  # For non-blocking file I/O in async applications
+]
+
 [dependency-groups]
 dev = [
     "ruff",
@@ -76,7 +87,9 @@ dev = [
     "docstr-coverage~=2.3.0",
     "radon~=6.0.1",
     "pytest-benchmark~=5.1.0",
-    "hypothesis~=6.140.0"
+    "hypothesis~=6.140.0",
+    "aiofiles>=24.0.0",
+    "pytest-asyncio~=1.2.0"
 ]
 
 [project.urls]

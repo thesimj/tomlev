@@ -26,4 +26,18 @@ from .__main__ import TomlEv, __version__, tomlev
 from .__model__ import BaseConfigModel
 from .errors import ConfigValidationError
 
-__all__ = ["BaseConfigModel", "TomlEv", "tomlev", "ConfigValidationError", "__version__"]
+# Async support is optional - only export if aiofiles is available
+try:
+    from .async_support import TomlEvAsync, tomlev_async
+
+    __all__ = [
+        "BaseConfigModel",
+        "TomlEv",
+        "tomlev",
+        "ConfigValidationError",
+        "__version__",
+        "TomlEvAsync",
+        "tomlev_async",
+    ]
+except ImportError:
+    __all__ = ["BaseConfigModel", "TomlEv", "tomlev", "ConfigValidationError", "__version__"]
