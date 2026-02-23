@@ -33,9 +33,9 @@ from .constants import (
     DEFAULT_ENV_FILE,
     DEFAULT_TOML_FILE,
     TOMLEV_ENV_FILE,
-    TOMLEV_STRICT_DISABLE,
     TOMLEV_TOML_FILE,
     VERSION,
+    resolve_strict_mode,
 )
 from .env_loader import EnvDict, read_env_file
 from .parser import ConfigDict, read_toml
@@ -117,12 +117,8 @@ class TomlEv(Generic[T]):
         # read environment
         self.__vars: EnvDict = dict(environ) if include_environment else {}
 
-        # set strict mode to false if "TOMLEV_STRICT_DISABLE" presents in env else use "strict" from the function
-        self.__strict = (
-            (environ[TOMLEV_STRICT_DISABLE].lower() not in {"true", "1", "yes", "y", "on", "t"})
-            if TOMLEV_STRICT_DISABLE in environ
-            else strict
-        )
+        # Apply global strict override from environment when present
+        self.__strict = resolve_strict_mode(strict, environ)
 
         # read .env files and update environment variables
         self.__dotenv: ConfigDict = read_env_file(env_file, self.__strict)

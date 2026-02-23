@@ -1,6 +1,6 @@
 [project]
 name = "tomlev"
-version = "1.0.8"
+version = "1.0.9"
 description = "Type-safe TOML configuration management with environment variable substitution, automatic validation, and optional async I/O support for modern Python applications."
 authors = [{ name = "Nick Bubelich", email = "m+github@bubelich.com" }]
 license = { text = "MIT" }

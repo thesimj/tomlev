@@ -5,6 +5,20 @@ All notable changes to TomlEv will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9] - 2026-02-23
+
+### Fixed
+
+- **Custom separator parsing**: Environment substitution now correctly respects custom separators across parser and CLI flows.
+- **Strict mode parity**: Async loading now honors `TOMLEV_STRICT_DISABLE` in the same way as synchronous loading.
+- **Include merge isolation**: Reused include payloads are deep-copied during merge to prevent cross-table alias leakage.
+
+### Enhanced
+
+- **Parser maintainability**: Refactored substitution logic into smaller helper functions with cached separator-aware regex patterns.
+- **Async env parsing**: Removed temporary-file roundtrip by sharing `.env` content parsing between sync and async code paths.
+- **CLI consistency**: Unified env-building flow and routed CLI error messages to stderr for cleaner command behavior.
+
 ## [1.0.8] - 2025-10-12
 
 ### Added

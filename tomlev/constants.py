@@ -24,6 +24,8 @@ SOFTWARE.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 __all__ = [
     "TOMLEV_STRICT_DISABLE",
     "TOMLEV_TOML_FILE",
@@ -31,6 +33,8 @@ __all__ = [
     "DEFAULT_TOML_FILE",
     "DEFAULT_ENV_FILE",
     "DEFAULT_SEPARATOR",
+    "STRICT_DISABLE_VALUES",
+    "resolve_strict_mode",
     "BOOL_TRUE_VALUES",
     "INCLUDE_KEY",
     "VERSION",
@@ -50,6 +54,9 @@ DEFAULT_ENV_FILE: str = ".env"
 # Default separator for variable substitution
 DEFAULT_SEPARATOR: str = "|-"
 
+# Values that disable strict mode when TOMLEV_STRICT_DISABLE is set
+STRICT_DISABLE_VALUES: frozenset[str] = frozenset({"true", "1", "yes", "y", "on", "t"})
+
 # Boolean true values for conversion
 BOOL_TRUE_VALUES: set[str] = {"true", "1", "yes", "y", "on", "t"}
 
@@ -57,4 +64,20 @@ BOOL_TRUE_VALUES: set[str] = {"true", "1", "yes", "y", "on", "t"}
 INCLUDE_KEY: str = "__include"
 
 # Package version
-VERSION: str = "1.0.8"
+VERSION: str = "1.0.9"
+
+
+def resolve_strict_mode(requested_strict: bool, env: Mapping[str, str]) -> bool:
+    """Resolve strict mode from user input and environment override.
+
+    Args:
+        requested_strict: Strict mode requested by the caller.
+        env: Environment mapping used to check TOMLEV_STRICT_DISABLE.
+
+    Returns:
+        Effective strict mode after applying the global environment override.
+    """
+    strict_disable = env.get(TOMLEV_STRICT_DISABLE)
+    if strict_disable is None:
+        return requested_strict
+    return strict_disable.lower() not in STRICT_DISABLE_VALUES

@@ -53,6 +53,23 @@ def test_cli_validate_missing_file_and_bad_toml() -> None:
         os.unlink(path)
 
 
+def test_cli_validate_custom_separator() -> None:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+        f.write('name = "${APP_NAME::demo}"\n')
+        toml_file = f.name
+
+    try:
+        code_default = tomlev_main(["validate", "--toml", toml_file, "--no-env-file", "--no-environ"])
+        assert code_default == 1
+
+        code_custom = tomlev_main(
+            ["validate", "--toml", toml_file, "--no-env-file", "--no-environ", "--separator", "::"]
+        )
+        assert code_custom == 0
+    finally:
+        os.unlink(toml_file)
+
+
 def test_cli_render_success() -> None:
     # Test successful rendering
     with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:

@@ -24,6 +24,7 @@ SOFTWARE.
 
 from __future__ import annotations
 
+import copy
 import io
 from pathlib import Path
 from typing import Any
@@ -52,7 +53,7 @@ def deep_merge(dst: dict[str, Any], src: dict[str, Any]) -> dict[str, Any]:
         if isinstance(v, dict) and isinstance(dst.get(k), dict):
             deep_merge(dst[k], v)
         else:
-            dst[k] = v
+            dst[k] = copy.deepcopy(v)
     return dst
 
 

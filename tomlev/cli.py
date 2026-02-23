@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from os import environ
 
 from .constants import (
@@ -41,6 +42,14 @@ from .errors import ConfigValidationError
 from .parser import read_toml
 
 __all__ = ["cli_validate", "cli_render", "main"]
+
+
+def _build_env(env_file: str | None, strict: bool, include_environment: bool) -> EnvDict:
+    """Build environment mapping from process env and optional .env file."""
+    env: EnvDict = dict(environ) if include_environment else {}
+    dotenv = read_env_file(env_file, strict)
+    env.update(dotenv)
+    return env
 
 
 def cli_validate(toml_file: str, env_file: str | None, strict: bool, include_environment: bool, separator: str) -> int:
@@ -59,30 +68,25 @@ def cli_validate(toml_file: str, env_file: str | None, strict: bool, include_env
     Returns:
         Exit code: 0 on success, 1 on failure.
     """
-    # Build env mapping
-    env: EnvDict = dict(environ) if include_environment else {}
-    # Read dotenv
     try:
-        dotenv = read_env_file(env_file, strict)
+        env = _build_env(env_file, strict, include_environment)
     except (OSError, IOError, PermissionError) as e:
-        print(f"Error reading env file: {e}")
+        print(f"Error reading env file: {e}", file=sys.stderr)
         return 1
     except ConfigValidationError as e:
-        print(str(e))
+        print(str(e), file=sys.stderr)
         return 1
-    env.update(dotenv)
 
-    # Read TOML and perform substitution
     try:
         read_toml(toml_file, env, strict, separator)
     except FileNotFoundError:
-        print(f"TOML file not found: {toml_file}")
+        print(f"TOML file not found: {toml_file}", file=sys.stderr)
         return 1
     except ConfigValidationError as e:
-        print(str(e))
+        print(str(e), file=sys.stderr)
         return 1
     except (OSError, IOError, ValueError, TypeError) as e:
-        print(f"Validation error: {e}")
+        print(f"Validation error: {e}", file=sys.stderr)
         return 1
 
     print("Validation successful.")
@@ -105,30 +109,25 @@ def cli_render(toml_file: str, env_file: str | None, strict: bool, include_envir
     Returns:
         Exit code: 0 on success, 1 on failure.
     """
-    # Build env mapping
-    env: EnvDict = dict(environ) if include_environment else {}
-    # Read dotenv
     try:
-        dotenv = read_env_file(env_file, strict)
+        env = _build_env(env_file, strict, include_environment)
     except (OSError, IOError, PermissionError) as e:
-        print(f"Error reading env file: {e}")
+        print(f"Error reading env file: {e}", file=sys.stderr)
         return 1
     except ConfigValidationError as e:
-        print(str(e))
+        print(str(e), file=sys.stderr)
         return 1
-    env.update(dotenv)
 
-    # Read TOML and perform substitution
     try:
         config = read_toml(toml_file, env, strict, separator)
     except FileNotFoundError:
-        print(f"TOML file not found: {toml_file}")
+        print(f"TOML file not found: {toml_file}", file=sys.stderr)
         return 1
     except ConfigValidationError as e:
-        print(str(e))
+        print(str(e), file=sys.stderr)
         return 1
     except (OSError, IOError, ValueError, TypeError) as e:
-        print(f"Render error: {e}")
+        print(f"Render error: {e}", file=sys.stderr)
         return 1
 
     # Output as JSON

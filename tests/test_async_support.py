@@ -191,6 +191,53 @@ async def test_tomlev_async_strict_mode_disabled():
 
 
 @pytest.mark.asyncio
+async def test_tomlev_async_respects_tomlev_strict_disable_env_var():
+    """Test async loader respects TOMLEV_STRICT_DISABLE=true."""
+    old_value = os.environ.get("TOMLEV_STRICT_DISABLE")
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+        f.write('host = "$UNDEFINED_ASYNC"\n')
+        f.write("port = 8080\n")
+        f.write("debug = true\n")
+        toml_path = f.name
+
+    try:
+        os.environ["TOMLEV_STRICT_DISABLE"] = "true"
+        loader = await TomlEvAsync.create(BasicConfig, toml_path, None, strict=True)
+        assert loader.strict is False
+        assert loader.validate().host == "$UNDEFINED_ASYNC"
+    finally:
+        Path(toml_path).unlink()
+        if old_value is None:
+            os.environ.pop("TOMLEV_STRICT_DISABLE", None)
+        else:
+            os.environ["TOMLEV_STRICT_DISABLE"] = old_value
+
+
+@pytest.mark.asyncio
+async def test_tomlev_async_strict_disable_false_keeps_strict_mode():
+    """Test async loader keeps strict mode when TOMLEV_STRICT_DISABLE=false."""
+    old_value = os.environ.get("TOMLEV_STRICT_DISABLE")
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+        f.write('host = "$UNDEFINED_ASYNC"\n')
+        f.write("port = 8080\n")
+        f.write("debug = true\n")
+        toml_path = f.name
+
+    try:
+        os.environ["TOMLEV_STRICT_DISABLE"] = "false"
+        with pytest.raises((EnvironmentVariableError, ConfigValidationError, ValueError)):
+            await TomlEvAsync.create(BasicConfig, toml_path, None, strict=True)
+    finally:
+        Path(toml_path).unlink()
+        if old_value is None:
+            os.environ.pop("TOMLEV_STRICT_DISABLE", None)
+        else:
+            os.environ["TOMLEV_STRICT_DISABLE"] = old_value
+
+
+@pytest.mark.asyncio
 async def test_tomlev_async_frozen_config():
     """Test that frozen configs work with async loading."""
 

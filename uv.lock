@@ -1364,7 +1364,7 @@ wheels = [
 
 [[package]]
 name = "tomlev"
-version = "1.0.8"
+version = "1.0.9"
 source = { editable = "." }
 
 [package.optional-dependencies]

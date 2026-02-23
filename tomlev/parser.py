@@ -35,12 +35,13 @@ from .constants import DEFAULT_SEPARATOR
 from .env_loader import EnvDict
 from .errors import EnvironmentVariableError
 from .include_handler import expand_includes_dict
-from .patterns import RE_PATTERN
 
 __all__ = ["ConfigDict", "read_toml", "substitute_and_parse"]
 
 # Type aliases for clarity
 ConfigDict: TypeAlias = dict[str, Any]
+SubstitutionSegment: TypeAlias = tuple[int, int, str]
+SubstitutionScanResult: TypeAlias = tuple[dict[str, str], list[SubstitutionSegment], set[str]]
 
 
 @lru_cache(maxsize=32)
@@ -84,6 +85,98 @@ def _apply_substitutions_batch(content: str, substitutions: dict[str, str]) -> s
     return re.sub(pattern, lambda m: substitutions[m.group(0)], content)
 
 
+@lru_cache(maxsize=16)
+def _get_substitution_pattern(separator: str) -> re.Pattern[str]:
+    """Build and cache substitution pattern for a given separator."""
+    escaped_separator = re.escape(separator)
+    return re.compile(
+        r"(?P<pref>[\"'])?"
+        r"(\$(?:(?P<escaped>(\$|\d+))|"
+        r"{(?P<braced>.*?)(?:" + escaped_separator + r"(?P<braced_default>.*?))?}|"
+        r"(?P<named>[\w\-\.]+)(?:" + escaped_separator + r"(?P<named_default>.*))?))"
+        r"(?P<post>[\"'])?",
+        re.MULTILINE | re.UNICODE | re.IGNORECASE | re.VERBOSE,
+    )
+
+
+def _extract_variable_and_default(groups: dict[str, str | None]) -> tuple[str | None, str | None]:
+    """Extract substitution variable and default from regex groups."""
+    named = groups.get("named")
+    if named:
+        return named, groups.get("named_default")
+
+    braced = groups.get("braced")
+    if braced:
+        return braced, groups.get("braced_default")
+
+    return None, None
+
+
+def _build_search_token(variable: str, default: str | None, is_braced: bool, separator: str) -> str:
+    """Rebuild matched token text for replacement lookup."""
+    search = "${" if is_braced else "$"
+    search += variable
+    if default is not None:
+        search += separator + default
+    if is_braced:
+        search += "}"
+    return search
+
+
+def _collect_substitutions(content: str, env: EnvDict, separator: str) -> SubstitutionScanResult:
+    """Scan TOML content for env substitutions and escaped tokens."""
+    not_found_variables: set[str] = set()
+    substitutions: dict[str, str] = {}
+    segments: list[SubstitutionSegment] = []
+
+    pattern = _get_substitution_pattern(separator)
+    for entry in pattern.finditer(content):
+        groups: dict[str, str | None] = entry.groupdict()
+
+        escaped = groups.get("escaped")
+        if escaped:
+            start, end = entry.span()
+            pref = groups.get("pref") or ""
+            post = groups.get("post") or ""
+            segments.append((start, end, f"{pref}{escaped}{post}"))
+            continue
+
+        variable, default = _extract_variable_and_default(groups)
+        if variable is None:
+            continue
+
+        replace: str | None = None
+        if variable in env:
+            replace = str(env[variable])
+        elif default is not None:
+            replace = default
+        else:
+            not_found_variables.add(variable)
+
+        if replace is None:
+            continue
+
+        search = _build_search_token(variable, default, bool(groups.get("braced")), separator)
+        substitutions[search] = replace
+
+    return substitutions, segments, not_found_variables
+
+
+def _apply_escape_segments(content: str, segments: list[SubstitutionSegment]) -> str:
+    """Apply escaped token replacements to content."""
+    if not segments:
+        return content
+
+    result_parts: list[str] = []
+    last_end = 0
+    for start, end, replacement in segments:
+        result_parts.append(content[last_end:start])
+        result_parts.append(replacement)
+        last_end = end
+    result_parts.append(content[last_end:])
+    return "".join(result_parts)
+
+
 def substitute_and_parse(content: str, env: EnvDict, strict: bool, separator: str = DEFAULT_SEPARATOR) -> ConfigDict:
     """Substitute environment variables in content and parse TOML.
 
@@ -102,70 +195,13 @@ def substitute_and_parse(content: str, env: EnvDict, strict: bool, separator: st
     Raises:
         EnvironmentVariableError: In strict mode, when referenced variables are undefined.
     """
-    # not found variables
-    not_found_variables = set()
-
-    # substitutions dictionary
-    substitutions: dict[str, str] = {}
-
-    # Build list of content segments for efficient string building
-    segments: list[tuple[int, int, str]] = []  # (start, end, replacement)
-
-    # iterate over findings
-    for entry in RE_PATTERN.finditer(content):
-        groups = entry.groupdict()
-
-        # replace
-        variable: str | None = None
-        default: str | None = None
-        replace: str | None = None
-
-        match groups:
-            case {"named": name, "named_default": def_val} if name:
-                variable = name
-                default = def_val
-            case {"braced": name, "braced_default": def_val} if name:
-                variable = name
-                default = def_val
-            case {"escaped": esc_val} if esc_val:
-                span = entry.span()
-                pref = groups.get("pref") or ""
-                post = groups.get("post") or ""
-                replacement = f"{pref}{esc_val}{post}"
-                segments.append((span[0], span[1], replacement))
-                continue
-
-        if variable is not None:
-            if variable in env:
-                replace = env[variable]
-            elif variable not in env and default is not None:
-                replace = default
-            else:
-                not_found_variables.add(variable)
-
-        if replace is not None and variable is not None:
-            search = "${" if groups["braced"] else "$"
-            search += variable
-            if default is not None:
-                search += separator + default
-            search += "}" if groups["braced"] else ""
-            substitutions[search] = replace
+    substitutions, segments, not_found_variables = _collect_substitutions(content, env, separator)
 
     if strict and not_found_variables:
         raise EnvironmentVariableError.missing_variables(list(not_found_variables))
 
     # Apply escape replacements efficiently using segments
-    if segments:
-        result_parts: list[str] = []
-        last_end: int = 0
-        for start, end, replacement in segments:
-            result_parts.append(content[last_end:start])
-            # Replacement is always str for escaped values, never None in practice
-            if replacement is not None:
-                result_parts.append(replacement)
-            last_end = end
-        result_parts.append(content[last_end:])
-        content = "".join(result_parts)
+    content = _apply_escape_segments(content, segments)
 
     # Apply variable substitutions using batch regex replacement for better performance
     content = _apply_substitutions_batch(content, substitutions)

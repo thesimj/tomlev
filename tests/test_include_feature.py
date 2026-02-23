@@ -79,6 +79,34 @@ def test_include_cache_and_merge() -> None:
         assert cfg.a["nested"]["flag"] is True
 
 
+def test_include_cache_isolation_between_tables() -> None:
+    class Root(BaseConfigModel):
+        first: dict
+        second: dict
+
+    with tempfile.TemporaryDirectory() as d:
+        main = os.path.join(d, "main.toml")
+        shared = os.path.join(d, "shared.toml")
+        first_only = os.path.join(d, "first_only.toml")
+
+        with open(shared, "w", encoding="utf8") as f_shared:
+            f_shared.write("[nested]\nbase = true\n")
+
+        with open(first_only, "w", encoding="utf8") as f_first:
+            f_first.write("[nested]\nfirst_only = true\n")
+
+        with open(main, "w", encoding="utf8") as f_main:
+            f_main.write(
+                '[first]\n__include = ["shared.toml", "first_only.toml"]\n\n[second]\n__include = ["shared.toml"]\n'
+            )
+
+        cfg = TomlEv(Root, main, None, strict=True).validate()
+        assert cfg.first["nested"]["base"] is True
+        assert cfg.first["nested"]["first_only"] is True
+        assert cfg.second["nested"]["base"] is True
+        assert "first_only" not in cfg.second["nested"]
+
+
 def test_envfile_line_without_equal_is_skipped() -> None:
     class Single(BaseConfigModel):
         x: str

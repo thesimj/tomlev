@@ -26,11 +26,18 @@ from __future__ import annotations
 
 from os import environ
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from .__model__ import BaseConfigModel
-from .constants import DEFAULT_ENV_FILE, DEFAULT_SEPARATOR, DEFAULT_TOML_FILE, TOMLEV_ENV_FILE, TOMLEV_TOML_FILE
-from .env_loader import EnvDict
+from .constants import (
+    DEFAULT_ENV_FILE,
+    DEFAULT_SEPARATOR,
+    DEFAULT_TOML_FILE,
+    TOMLEV_ENV_FILE,
+    TOMLEV_TOML_FILE,
+    resolve_strict_mode,
+)
+from .env_loader import EnvDict, parse_env_content
 from .include_handler import expand_includes_dict
 from .parser import ConfigDict, substitute_and_parse
 
@@ -39,12 +46,14 @@ __all__ = ["TomlEvAsync", "tomlev_async", "read_toml_async"]
 T = TypeVar("T", bound=BaseConfigModel)
 
 # Check if aiofiles is available
+aiofiles: Any
 try:
     import aiofiles
     import aiofiles.os
 
     AIOFILES_AVAILABLE = True
 except ImportError:
+    aiofiles = None
     AIOFILES_AVAILABLE = False
 
 
@@ -65,8 +74,9 @@ async def _read_file_async(file_path: str) -> str:
             "aiofiles is required for async file operations. Install it with: pip install aiofiles or uv add aiofiles"
         )
 
+    assert aiofiles is not None
     async with aiofiles.open(file_path, mode="rt", encoding="utf8") as fp:
-        return await fp.read()
+        return str(await fp.read())
 
 
 async def read_env_file_async(file_path: str | None, strict: bool = True) -> EnvDict:
@@ -83,13 +93,12 @@ async def read_env_file_async(file_path: str | None, strict: bool = True) -> Env
         EnvironmentVariableError: In strict mode, when duplicate variables are found.
         ImportError: If aiofiles is not installed.
     """
-    from .env_loader import read_env_file
-
     if not file_path:
         return {}
 
     # Check if file exists asynchronously
     if AIOFILES_AVAILABLE:
+        assert aiofiles is not None
         if not await aiofiles.os.path.isfile(file_path):
             return {}
     else:
@@ -98,22 +107,7 @@ async def read_env_file_async(file_path: str | None, strict: bool = True) -> Env
 
     # Read file asynchronously
     content = await _read_file_async(file_path)
-
-    # Use synchronous parsing logic (minimal I/O impact)
-    # We could refactor env_loader.py to separate parsing from reading,
-    # but for now we'll use a simple approach
-    import tempfile
-
-    with tempfile.NamedTemporaryFile(mode="w", delete=False, encoding="utf8") as tmp:
-        tmp.write(content)
-        tmp_path = tmp.name
-
-    try:
-        result = read_env_file(tmp_path, strict)
-    finally:
-        Path(tmp_path).unlink()
-
-    return result
+    return parse_env_content(content, strict)
 
 
 async def read_toml_async(file_path: str, env: EnvDict, strict: bool, separator: str = DEFAULT_SEPARATOR) -> ConfigDict:
@@ -241,6 +235,9 @@ class TomlEvAsync(Generic[T]):
             toml_file = environ.get(TOMLEV_TOML_FILE, DEFAULT_TOML_FILE)
         if env_file is None:
             env_file = environ.get(TOMLEV_ENV_FILE, DEFAULT_ENV_FILE)
+
+        # Apply global strict override from environment when present
+        strict = resolve_strict_mode(strict, environ)
 
         # Read environment
         env_vars: EnvDict = dict(environ) if include_environment else {}
