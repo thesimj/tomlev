@@ -190,10 +190,10 @@ class BaseConfigModel:
             name: Attribute name.
 
         Raises:
-            AttributeError: When attempting to delete from a frozen instance.
+            AttributeError: When attempting to remove an attribute from a frozen instance.
         """
         if getattr(self, "_frozen", False):
-            raise AttributeError(f"Cannot delete from frozen configuration model: {self.__class__.__name__}")
+            raise AttributeError(f"Cannot remove attribute on frozen configuration model: {self.__class__.__name__}")
         object.__delattr__(self, name)
 
     def _convert_value(self, attr: str, kind: type, value: Any, kwargs: dict[str, Any]) -> Any:

@@ -68,6 +68,7 @@ def main():
     # Change to the project root directory
     project_root = Path(__file__).parent.parent
     print(f"Project root: {project_root}")
+    bandit_config = str(project_root / "pyproject.toml")
 
     # List of checks to run
     checks = [
@@ -77,7 +78,7 @@ def main():
         # Type checking
         (candidates_for("mypy", "tomlev"), "MyPy type checking"),
         # Security scanning
-        (candidates_for("bandit", "-r", "tomlev"), "Bandit security scan"),
+        (candidates_for("bandit", "-c", bandit_config, "-r", "tomlev"), "Bandit security scan"),
         # Documentation coverage
         (candidates_for("docstr-coverage", "tomlev", "--badge=no"), "Docstring coverage"),
         # Code complexity

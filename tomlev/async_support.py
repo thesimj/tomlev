@@ -74,7 +74,10 @@ async def _read_file_async(file_path: str) -> str:
             "aiofiles is required for async file operations. Install it with: pip install aiofiles or uv add aiofiles"
         )
 
-    assert aiofiles is not None
+    if aiofiles is None:
+        raise ImportError(
+            "aiofiles is required for async file operations. Install it with: pip install aiofiles or uv add aiofiles"
+        )
     async with aiofiles.open(file_path, mode="rt", encoding="utf8") as fp:
         return str(await fp.read())
 
@@ -98,7 +101,10 @@ async def read_env_file_async(file_path: str | None, strict: bool = True) -> Env
 
     # Check if file exists asynchronously
     if AIOFILES_AVAILABLE:
-        assert aiofiles is not None
+        if aiofiles is None:
+            raise ImportError(
+                "aiofiles is required for async file operations. Install it with: pip install aiofiles or uv add aiofiles"
+            )
         if not await aiofiles.os.path.isfile(file_path):
             return {}
     else:
