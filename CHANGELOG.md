@@ -5,6 +5,17 @@ All notable changes to TomlEv will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10] - 2026-02-24
+
+### Fixed
+
+- **Quality checks stability**: Resolved Bandit-related CI failures by removing assert-based guards and clarifying a frozen-model error message that triggered false-positive SQL checks.
+- **Artifact installation validation**: Updated installation workflow to test `tomlev[async]` from the built wheel artifact rather than package indexes, preventing PyPI version drift failures.
+
+### Changed
+
+- **Dependency refresh**: Updated locked dependencies in `uv.lock` and revalidated compatibility with Python 3.11, 3.12, 3.13, and 3.14.
+
 ## [1.0.9] - 2026-02-23
 
 ### Fixed

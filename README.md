@@ -510,7 +510,7 @@ When strict mode is disabled, TomlEv will not raise errors for missing environme
 
 ### Performance
 
-TomlEv v1.0.9 includes significant performance improvements:
+TomlEv v1.0.10 includes significant performance improvements:
 
 - **50-60% faster** overall performance
 - **40-50% less memory** usage per configuration instance

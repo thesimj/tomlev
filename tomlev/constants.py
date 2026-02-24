@@ -64,7 +64,7 @@ BOOL_TRUE_VALUES: set[str] = {"true", "1", "yes", "y", "on", "t"}
 INCLUDE_KEY: str = "__include"
 
 # Package version
-VERSION: str = "1.0.9"
+VERSION: str = "1.0.10"
 
 
 def resolve_strict_mode(requested_strict: bool, env: Mapping[str, str]) -> bool:
