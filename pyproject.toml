@@ -164,8 +164,8 @@ exclude = [
 line-length = 120
 indent-width = 4
 
-# Assume Python 3.14
-target-version = "py314"
+# Format against minimum supported Python
+target-version = "py311"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
