@@ -237,7 +237,16 @@ jobs:
 
       - name: Test async extra installation
         run: |
-          uv pip install --system 'tomlev[async]' --reinstall-package tomlev
+          WHEEL_URI="$(python - <<'PY'
+          from pathlib import Path
+
+          wheel = next(Path("dist").glob("*.whl"), None)
+          if wheel is None:
+              raise SystemExit("No wheel found in dist/")
+          print(wheel.resolve().as_uri())
+          PY
+          )"
+          uv pip install --system --force-reinstall "tomlev[async] @ ${WHEEL_URI}"
           python -c "from tomlev import tomlev_async; print('Async support verified')"
         continue-on-error: false
 
